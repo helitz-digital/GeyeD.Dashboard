@@ -15,6 +15,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/shared/logo";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
@@ -66,9 +67,7 @@ export function Sidebar() {
     <aside data-onboarding="sidebar" className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-sidebar">
       {/* Logo Section */}
       <div className="flex items-center gap-3 p-6">
-        <div className="flex size-8 items-center justify-center rounded bg-primary">
-          <span className="text-xs font-bold text-primary-foreground">G</span>
-        </div>
+        <Logo size={32} showText={false} />
         <div>
           <h1 className="text-lg font-bold tracking-tight text-foreground">
             Geyed

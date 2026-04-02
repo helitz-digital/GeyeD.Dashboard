@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/providers/auth-provider";
+import { Logo } from "@/components/shared/logo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function RegisterPage() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-2xl">Create Account</CardTitle>
+        <Logo size={36} className="justify-center" />
         <CardDescription>Sign up to get started with Geyed</CardDescription>
       </CardHeader>
       <CardContent>

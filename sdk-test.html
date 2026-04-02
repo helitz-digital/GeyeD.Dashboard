@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geyed SDK Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            color: #333;
+        }
+
+        h1 {
+            color: #1a1a2e;
+        }
+
+        .card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            background: #fafafa;
+        }
+
+        .card h2 {
+            margin-top: 0;
+        }
+
+        button {
+            background: #4361ee;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
+        button:hover {
+            background: #3a56d4;
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #5a6268;
+        }
+
+        #status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        #feature-list {
+            padding: 12px;
+        }
+
+        #get-started-btn,
+        #profile-btn,
+        #settings-btn {
+            display: inline-block;
+        }
+
+        nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Geyed SDK Test Page</h1>
+    <p>This page simulates a target application where the Geyed SDK renders product tours.</p>
+
+    <nav>
+        <button id="get-started-btn">Get Started</button>
+        <button id="profile-btn" class="secondary">Profile</button>
+        <button id="settings-btn" class="secondary">Settings</button>
+    </nav>
+
+    <div class="card">
+        <h2 id="welcome-heading">Welcome to Our App</h2>
+        <p>This is a sample application page. When you initialize the SDK with a valid API key,
+            published tours will appear as tooltip overlays anchored to elements on this page.</p>
+    </div>
+
+    <div class="card">
+        <h2>Features</h2>
+        <ul id="feature-list">
+            <li>Product Tours</li>
+            <li>Step-by-step Guides</li>
+            <li>Onboarding Flows</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Click Trigger Test</h2>
+        <p>If you have a tour with a Click trigger targeting <code>#test-click-trigger</code>, clicking this button should start it:</p>
+        <button id="test-click-trigger">Trigger Tour (Click)</button>
+    </div>
+
+    <div class="card">
+        <h2>SDK Controls</h2>
+        <p>
+            <label>API Key: <input id="api-key" type="text" value="gyd_demo_api_key"
+                    placeholder="Paste your app API key" style="width: 300px; padding: 6px;" /></label>
+        </p>
+        <p>
+            <label>API Base URL: <input id="api-url" type="text" value="http://localhost:5073"
+                    style="width: 300px; padding: 6px;" /></label>
+        </p>
+        <button onclick="initSdk()">Initialize SDK</button>
+        <button onclick="destroySdk()" class="secondary">Destroy SDK</button>
+
+        <h3 style="margin-top: 16px;">External Trigger</h3>
+        <p>
+            <label>Tour ID: <input id="tour-id" type="number" placeholder="Tour ID" value="7"
+                    style="width: 120px; padding: 6px;" /></label>
+            <button onclick="startTourById()" class="secondary">Start Tour</button>
+        </p>
+        <p style="margin-top: 4px;">
+            <code style="background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 13px;">GeyedSDK.startTour(7)</code>
+        </p>
+        <div id="status" class="info">SDK not initialized. Enter an API key and click "Initialize SDK".</div>
+    </div>
+
+    <!-- Load the SDK IIFE bundle -->
+    <script src="../SDK/dist/index.iife.js"></script>
+    <script>
+        var status = document.getElementById('status');
+
+        function log(msg, type) {
+            status.className = type || 'info';
+            status.textContent = msg;
+            console.log('[Geyed Test]', msg);
+        }
+
+        function initSdk() {
+            var apiKey = document.getElementById('api-key').value.trim();
+            var apiUrl = document.getElementById('api-url').value.trim();
+
+            if (!apiKey) {
+                log('Please enter an API key.', 'error');
+                return;
+            }
+
+            if (typeof GeyedSDK === 'undefined') {
+                log('Error: GeyedSDK global not found. Make sure SDK/dist/index.iife.js is built.', 'error');
+                return;
+            }
+
+            log('Initializing SDK with apiKey=' + apiKey + ' ...', 'info');
+
+            try {
+                GeyedSDK.init({
+                    apiKey: apiKey,
+                    baseUrl: apiUrl,
+                    debug: true
+                });
+
+                // start() fetches published tours and displays matching ones
+                GeyedSDK.start().then(function() {
+                    log('SDK started! Tours fetched and matching tours will display.', 'success');
+                }).catch(function(e) {
+                    log('SDK start error: ' + e.message, 'error');
+                });
+            } catch (e) {
+                log('SDK init error: ' + e.message, 'error');
+            }
+        }
+
+        function destroySdk() {
+            if (typeof GeyedSDK !== 'undefined' && GeyedSDK.destroy) {
+                GeyedSDK.destroy();
+                log('SDK destroyed.', 'info');
+            }
+        }
+
+        function startTourById() {
+            var tourId = parseInt(document.getElementById('tour-id').value, 10);
+            if (!tourId || isNaN(tourId)) {
+                log('Please enter a valid Tour ID.', 'error');
+                return;
+            }
+            if (typeof GeyedSDK === 'undefined' || !GeyedSDK.startTour) {
+                log('Error: GeyedSDK.startTour not available. Initialize SDK first.', 'error');
+                return;
+            }
+            log('Starting tour ' + tourId + '...', 'info');
+            GeyedSDK.startTour(tourId).then(function() {
+                log('Tour ' + tourId + ' started!', 'success');
+            }).catch(function(e) {
+                log('startTour error: ' + e.message, 'error');
+            });
+        }
+    </script>
+</body>
+
+</html>

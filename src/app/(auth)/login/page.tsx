@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/providers/auth-provider";
+import { Logo } from "@/components/shared/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-2xl">Geyed</CardTitle>
+        <Logo size={36} className="justify-center" />
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent>
