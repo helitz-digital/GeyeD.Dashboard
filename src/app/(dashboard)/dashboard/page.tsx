@@ -22,6 +22,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { MetricCard } from "@/components/shared/metric-card";
 import { ActivityItem } from "@/components/shared/activity-item";
 import { SubscriptionGate } from "@/components/billing/subscription-gate";
+import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 
 
 const activityIconMap: Record<string, { icon: LucideIcon; iconBg: string }> = {
@@ -102,6 +103,9 @@ export default function DashboardPage() {
         title="Overview"
         description="Welcome back. Here is what's happening with your tours today."
       />
+
+      {/* Onboarding checklist — shown until all steps are complete */}
+      <OnboardingChecklist />
 
       {/* Metrics Grid */}
       <SubscriptionGate status={subscriptionStatus} feature="dashboard analytics" orgId={orgId}>
