@@ -387,7 +387,7 @@ export interface CreateCheckoutRequest {
 }
 
 // Onboarding
-export type OnboardingStage = "NotStarted" | "OrientationComplete" | "AppCreated" | "TourCreated" | "SdkInstalled" | "Complete";
+export type OnboardingStage = "notStarted" | "orientationComplete" | "appCreated" | "tourCreated" | "sdkInstalled" | "complete";
 
 export interface OnboardingStatusRm {
   stage: OnboardingStage;

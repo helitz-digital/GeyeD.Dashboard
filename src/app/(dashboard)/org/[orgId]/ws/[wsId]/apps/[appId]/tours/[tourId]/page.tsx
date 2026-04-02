@@ -1,6 +1,7 @@
 "use client";
 
 import { useTour, useDraft, useSaveDraft, usePublish, useUnpublish, useApp } from "@/lib/api/hooks";
+import { useOnboarding, ONBOARDING_TOUR_IDS } from "@/providers/onboarding-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,7 @@ export default function TourDetailPage() {
   const saveDraft = useSaveDraft(appId, tourId);
   const publish = usePublish(appId, tourId);
   const unpublish = useUnpublish(appId, tourId);
+  const { advanceStage, currentStage, startOnboardingTour } = useOnboarding();
 
   const themeColors = useMemo(
     () => resolveThemeColors(app?.themeConfig ?? null),
@@ -126,17 +128,55 @@ export default function TourDetailPage() {
   const handleSave = async () => {
     await saveDraft.mutateAsync(buildRequest());
     toast.success("Draft saved");
+
+    // Advance onboarding when user first saves a tour draft
+    if (currentStage === "appCreated") {
+      advanceStage("tourCreated");
+    }
   };
 
   const handlePublish = async () => {
     await publish.mutateAsync(buildRequest());
     toast.success("Tour published");
+
+    // Advance onboarding based on current stage
+    if (currentStage === "appCreated") {
+      advanceStage("tourCreated");
+    } else if (currentStage === "tourCreated") {
+      advanceStage("sdkInstalled");
+    } else if (currentStage === "sdkInstalled") {
+      advanceStage("complete");
+    }
   };
 
   const handleUnpublish = async () => {
     await unpublish.mutateAsync();
     toast.success("Tour unpublished");
   };
+
+  // -----------------------------------------------------------------------
+  // Trigger onboarding SDK tour when arriving at the right stage
+  // -----------------------------------------------------------------------
+  const hasTriggeredTour = useRef(false);
+  useEffect(() => {
+    if (!draft || hasTriggeredTour.current) return;
+
+    if (currentStage === "appCreated") {
+      hasTriggeredTour.current = true;
+      // Small delay so DOM elements with data-onboarding attributes are rendered
+      const timer = setTimeout(() => {
+        startOnboardingTour(ONBOARDING_TOUR_IDS.BUILD_TOUR);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+    if (currentStage === "sdkInstalled") {
+      hasTriggeredTour.current = true;
+      const timer = setTimeout(() => {
+        startOnboardingTour(ONBOARDING_TOUR_IDS.PUBLISH);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [draft, currentStage, startOnboardingTour]);
 
   const activeStep = steps[activeStepIndex];
   const isSaving = saveDraft.isPending;

@@ -16,28 +16,15 @@ import {
   useSkipOnboarding,
   useResetOnboarding,
 } from "@/lib/api/hooks";
-import {
-  allOnboardingTours,
-  ONBOARDING_TOUR_IDS,
-} from "@/components/onboarding/onboarding-tours";
-import { ContinuePrompt } from "@/components/onboarding/continue-prompt";
 import { Celebration } from "@/components/onboarding/celebration";
 import {
   getSdk,
   type SdkEventCallback,
 } from "@/components/onboarding/sdk-bridge";
-
-// ---------------------------------------------------------------------------
-// Stage → Tour mapping
-// ---------------------------------------------------------------------------
-
-const STAGE_TOUR_MAP: Record<string, number | undefined> = {
-  NotStarted: ONBOARDING_TOUR_IDS.ORIENTATION,
-  OrientationComplete: ONBOARDING_TOUR_IDS.CREATE_APP,
-  AppCreated: ONBOARDING_TOUR_IDS.BUILD_TOUR,
-  TourCreated: ONBOARDING_TOUR_IDS.INSTALL_SDK,
-  SdkInstalled: ONBOARDING_TOUR_IDS.PUBLISH,
-};
+import {
+  allOnboardingTours,
+  ONBOARDING_TOUR_IDS,
+} from "@/components/onboarding/onboarding-tours";
 
 // ---------------------------------------------------------------------------
 // Context value
@@ -53,7 +40,8 @@ interface OnboardingContextValue {
   skipOnboarding: () => void;
   restartOnboarding: () => void;
   advanceStage: (stage: OnboardingStage, meta?: { appId?: number }) => void;
-  triggerCurrentTour: () => void;
+  /** Start a specific SDK overlay tour by ID. Pages call this on mount. */
+  startOnboardingTour: (tourId: number) => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
@@ -70,6 +58,9 @@ export function useOnboarding(): OnboardingContextValue {
   return ctx;
 }
 
+// Re-export tour IDs so pages can reference them without importing onboarding-tours directly
+export { ONBOARDING_TOUR_IDS };
+
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
@@ -81,30 +72,26 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const skip = useSkipOnboarding();
   const reset = useResetOnboarding();
 
-  const [tourDismissed, setTourDismissed] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
 
   const currentStage = status?.stage ?? null;
   const isOnboarding =
-    !!currentStage && currentStage !== "Complete" && !showCelebration;
+    !!currentStage && currentStage !== "complete" && !showCelebration;
 
-  // Keep refs so event handlers don't re-subscribe on every render
+  // Keep a ref for event handlers
   const completeStageRef = useRef(completeStage);
   completeStageRef.current = completeStage;
 
-  const createSampleTourRef = useRef(createSampleTour);
-  createSampleTourRef.current = createSampleTour;
-
-  const statusRef = useRef(status);
-  statusRef.current = status;
-
   // -----------------------------------------------------------------------
-  // Initialise the SDK once with the onboarding tour definitions
+  // Initialise the SDK with all onboarding tour definitions
   // -----------------------------------------------------------------------
   useEffect(() => {
     const sdk = getSdk();
-    sdk.init({ tours: allOnboardingTours as Parameters<typeof sdk.init>[0]["tours"], debug: false });
+    sdk.init({
+      tours: allOnboardingTours as Parameters<typeof sdk.init>[0]["tours"],
+      debug: false,
+    });
     setSdkReady(true);
 
     return () => {
@@ -113,7 +100,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   // -----------------------------------------------------------------------
-  // Listen for SDK events (tour_completed / tour_dismissed)
+  // Listen for SDK tour completion events to advance stages
   // -----------------------------------------------------------------------
   useEffect(() => {
     if (!sdkReady) return;
@@ -121,75 +108,38 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     const sdk = getSdk();
 
     const handleComplete: SdkEventCallback = (data) => {
-      const tourId = data.tourId;
-      const s = statusRef.current;
-
-      // Map completed tour back to the stage it satisfies
-      if (tourId === ONBOARDING_TOUR_IDS.ORIENTATION) {
-        completeStageRef.current.mutate({ stage: "OrientationComplete" });
-      } else if (tourId === ONBOARDING_TOUR_IDS.CREATE_APP) {
-        // App creation is handled by the actual create-app flow, not tour completion
-      } else if (tourId === ONBOARDING_TOUR_IDS.BUILD_TOUR) {
-        completeStageRef.current.mutate({ stage: "TourCreated" });
-      } else if (tourId === ONBOARDING_TOUR_IDS.INSTALL_SDK) {
-        completeStageRef.current.mutate({ stage: "SdkInstalled" });
-      } else if (tourId === ONBOARDING_TOUR_IDS.PUBLISH) {
-        completeStageRef.current.mutate({ stage: "Complete" });
-        if (s?.defaultOrgId && s?.defaultWorkspaceId && s?.appId) {
-          setShowCelebration(true);
-        }
+      if (data.tourId === ONBOARDING_TOUR_IDS.BUILD_TOUR) {
+        completeStageRef.current.mutate({ stage: "tourCreated" });
+      } else if (data.tourId === ONBOARDING_TOUR_IDS.INSTALL_SDK) {
+        completeStageRef.current.mutate({ stage: "sdkInstalled" });
+      } else if (data.tourId === ONBOARDING_TOUR_IDS.PUBLISH) {
+        completeStageRef.current.mutate({ stage: "complete" });
       }
-
-      setTourDismissed(false);
-    };
-
-    const handleDismiss: SdkEventCallback = () => {
-      setTourDismissed(true);
     };
 
     sdk.on("tour_completed", handleComplete);
-    sdk.on("tour_dismissed", handleDismiss);
-
     return () => {
       sdk.off("tour_completed", handleComplete);
-      sdk.off("tour_dismissed", handleDismiss);
     };
   }, [sdkReady]);
 
   // -----------------------------------------------------------------------
-  // Auto-trigger the appropriate tour when the stage changes
+  // Auto-advance past "notStarted" → "orientationComplete"
   // -----------------------------------------------------------------------
+  const hasAutoAdvanced = useRef(false);
   useEffect(() => {
-    if (!sdkReady || !currentStage || currentStage === "Complete") return;
-
-    const tourId = STAGE_TOUR_MAP[currentStage];
-    if (!tourId) return;
-
-    const timer = setTimeout(() => {
-      // Guard: stage may have changed during the delay
-      if (statusRef.current?.stage !== currentStage) return;
-
-      const sdk = getSdk();
-      sdk.startTour(tourId).catch(() => {
-        // Target selectors may not exist yet – silently ignore
-      });
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [sdkReady, currentStage]);
+    if (currentStage === "notStarted" && !hasAutoAdvanced.current) {
+      hasAutoAdvanced.current = true;
+      completeStage.mutate({ stage: "orientationComplete" });
+    }
+    if (currentStage !== "notStarted") {
+      hasAutoAdvanced.current = false;
+    }
+  }, [currentStage, completeStage]);
 
   // -----------------------------------------------------------------------
   // Actions
   // -----------------------------------------------------------------------
-  const triggerCurrentTour = useCallback(() => {
-    if (!currentStage || currentStage === "Complete") return;
-    const tourId = STAGE_TOUR_MAP[currentStage];
-    if (!tourId) return;
-
-    setTourDismissed(false);
-    const sdk = getSdk();
-    sdk.startTour(tourId).catch(() => {});
-  }, [currentStage]);
 
   const handleSkip = useCallback(() => {
     skip.mutate();
@@ -197,7 +147,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const handleRestart = useCallback(() => {
     setShowCelebration(false);
-    setTourDismissed(false);
     reset.mutate();
   }, [reset]);
 
@@ -205,12 +154,26 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     (stage: OnboardingStage, meta?: { appId?: number }) => {
       completeStage.mutate({ stage });
 
-      // When app is created, also create the sample tour for onboarding Stage 3
-      if (stage === "AppCreated" && meta?.appId) {
+      if (stage === "appCreated" && meta?.appId) {
         createSampleTour.mutate({ appId: meta.appId });
       }
+
+      if (stage === "complete" && status?.defaultOrgId && status?.defaultWorkspaceId && status?.appId) {
+        setShowCelebration(true);
+      }
     },
-    [completeStage, createSampleTour],
+    [completeStage, createSampleTour, status],
+  );
+
+  const startOnboardingTour = useCallback(
+    (tourId: number) => {
+      if (!sdkReady || !isOnboarding) return;
+      const sdk = getSdk();
+      sdk.startTour(tourId).catch(() => {
+        // Target selectors may not be in the DOM yet — safe to ignore
+      });
+    },
+    [sdkReady, isOnboarding],
   );
 
   // -----------------------------------------------------------------------
@@ -226,22 +189,13 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     skipOnboarding: handleSkip,
     restartOnboarding: handleRestart,
     advanceStage,
-    triggerCurrentTour,
+    startOnboardingTour,
   };
 
   return (
     <OnboardingContext value={value}>
       {children}
 
-      {/* Continue prompt when user dismisses a tour mid-onboarding */}
-      {isOnboarding && tourDismissed && (
-        <ContinuePrompt
-          onContinue={triggerCurrentTour}
-          onSkip={handleSkip}
-        />
-      )}
-
-      {/* Celebration overlay on completion */}
       {showCelebration &&
         status?.defaultOrgId &&
         status?.defaultWorkspaceId &&

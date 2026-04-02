@@ -4,6 +4,8 @@ import { useApps, useCreateApp, useDeleteApp, useOrganisationMembers } from "@/l
 import { useAuth } from "@/providers/auth-provider";
 import { useOrgContext } from "@/providers/org-provider";
 import { useWorkspaceContext } from "@/providers/workspace-provider";
+import { useOnboarding, ONBOARDING_TOUR_IDS } from "@/providers/onboarding-provider";
+import { SdkInstallSection } from "@/components/onboarding/sdk-install-section";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DeleteConfirmationDialog } from "@/components/shared/delete-confirmation-dialog";
@@ -15,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Copy, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,12 +39,31 @@ export default function AppsPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
   const isOwner = members?.some((m) => m.userId === user?.id && m.role === "Owner") ?? false;
+  const { advanceStage, currentStage, startOnboardingTour } = useOnboarding();
+
+  // Trigger the Install SDK overlay tour when arriving at the tourCreated stage
+  const hasTriggeredInstallTour = useRef(false);
+  useEffect(() => {
+    if (currentStage === "tourCreated" && data?.items?.[0] && !hasTriggeredInstallTour.current) {
+      hasTriggeredInstallTour.current = true;
+      // Delay so SdkInstallSection renders and its data-onboarding targets exist
+      const timer = setTimeout(() => {
+        startOnboardingTour(ONBOARDING_TOUR_IDS.INSTALL_SDK);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStage, data, startOnboardingTour]);
 
   const handleCreate = async () => {
     try {
-      await createMutation.mutateAsync({ name });
+      const app = await createMutation.mutateAsync({ name });
       setName("");
       setOpen(false);
+
+      // Advance onboarding when the user creates their first app
+      if (currentStage === "orientationComplete") {
+        advanceStage("appCreated", { appId: app.id });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create app.");
     }
@@ -129,6 +150,15 @@ export default function AppsPage() {
           </Link>
         ))}
       </div>
+
+      {/* Show SDK install instructions during onboarding */}
+      {currentStage === "tourCreated" && data?.items?.[0] && (
+        <SdkInstallSection
+          apiKey={data.items[0].apiKey}
+          onVerify={() => advanceStage("sdkInstalled")}
+          onSkip={() => advanceStage("sdkInstalled")}
+        />
+      )}
 
       <DeleteConfirmationDialog
         open={deleteTarget !== null}
