@@ -1,5 +1,7 @@
 "use client";
 
+import DOMPurify from "dompurify";
+import { useMemo } from "react";
 import type { StepRequest } from "@/lib/api/types";
 import type { ThemeColors } from "@/lib/theme";
 
@@ -39,6 +41,11 @@ export function StepPreview({ step, stepIndex, totalSteps, themeColors }: StepPr
   const { bg, text, primary } = themeColors;
   const backBg = bg === "#ffffff" ? "#f1f5f9" : "rgba(255,255,255,0.1)";
 
+  const sanitizedContent = useMemo(
+    () => (typeof window !== "undefined" && step.content ? DOMPurify.sanitize(step.content) : ""),
+    [step.content],
+  );
+
   return (
     <div className="space-y-2">
       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -63,11 +70,11 @@ export function StepPreview({ step, stepIndex, totalSteps, themeColors }: StepPr
           </div>
 
           {/* Content */}
-          {step.content && (
+          {sanitizedContent && (
             <div
               style={{ color: text, opacity: 0.75, fontSize: 13, marginTop: 6 }}
               className="[&_p]:my-0.5 [&_ul]:my-0.5 [&_ul]:list-disc [&_ul]:pl-4 [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: step.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizedContent }}
             />
           )}
 
