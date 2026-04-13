@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/accept-invitation"];
 const AUTH_REDIRECT_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasToken = request.cookies.has("geyed_access_token");
 
