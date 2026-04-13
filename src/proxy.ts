@@ -6,7 +6,7 @@ const AUTH_REDIRECT_ROUTES = ["/login", "/register", "/forgot-password", "/reset
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hasToken = request.cookies.has("geyed_access_token");
+  const hasToken = request.cookies.has("geyed_session");
 
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthRedirectRoute = AUTH_REDIRECT_ROUTES.some((route) => pathname.startsWith(route));
