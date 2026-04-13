@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/providers/auth-provider";
 import { Logo } from "@/components/shared/logo";
+import { safeRedirect } from "@/lib/safe-redirect";
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<Card className="w-full max-w-sm" />}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { register } = useAuth();
@@ -34,8 +43,7 @@ export default function RegisterPage() {
 
     try {
       await register({ email, password, confirmPassword, displayName: displayName || undefined });
-      const redirect = searchParams.get("redirect");
-      router.push(redirect ?? "/dashboard");
+      router.push(safeRedirect(searchParams.get("redirect"), "/dashboard"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
     } finally {
@@ -108,7 +116,13 @@ export default function RegisterPage() {
           </Button>
           <p className="text-xs text-center text-muted-foreground">
             Already have an account?{" "}
-            <Link href={searchParams.get("redirect") ? `/login?redirect=${encodeURIComponent(searchParams.get("redirect")!)}` : "/login"} className="text-foreground hover:underline">
+            <Link
+              href={(() => {
+                const r = safeRedirect(searchParams.get("redirect"), "");
+                return r ? `/login?redirect=${encodeURIComponent(r)}` : "/login";
+              })()}
+              className="text-foreground hover:underline"
+            >
               Sign in
             </Link>
           </p>

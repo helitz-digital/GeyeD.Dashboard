@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/providers/auth-provider";
 import { Logo } from "@/components/shared/logo";
+import { safeRedirect } from "@/lib/safe-redirect";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<Card className="w-full max-w-sm" />}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -26,8 +35,7 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      const redirect = searchParams.get("redirect");
-      router.push(redirect ?? "/");
+      router.push(safeRedirect(searchParams.get("redirect"), "/"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {
@@ -83,7 +91,13 @@ export default function LoginPage() {
           </Button>
           <p className="text-xs text-center text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link href={searchParams.get("redirect") ? `/register?redirect=${encodeURIComponent(searchParams.get("redirect")!)}` : "/register"} className="text-foreground hover:underline">
+            <Link
+              href={(() => {
+                const r = safeRedirect(searchParams.get("redirect"), "");
+                return r ? `/register?redirect=${encodeURIComponent(r)}` : "/register";
+              })()}
+              className="text-foreground hover:underline"
+            >
               Register
             </Link>
           </p>
