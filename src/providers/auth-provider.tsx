@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { AuthResult, UserInfoRm, LoginApiRequest, RegisterApiRequest } from "@/lib/api/types";
-import { apiClient, setTokens, clearTokens, getAccessToken } from "@/lib/api/client";
+import { apiClient } from "@/lib/api/client";
 
 interface AuthContextValue {
   user: UserInfoRm | null;
@@ -10,7 +10,7 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (data: LoginApiRequest) => Promise<AuthResult>;
   register: (data: RegisterApiRequest) => Promise<AuthResult>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -32,17 +32,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data);
     } catch {
       setUser(null);
-      clearTokens();
     }
   }, []);
 
   useEffect(() => {
-    const token = getAccessToken();
-    if (token) {
-      fetchCurrentUser().finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    fetchCurrentUser().finally(() => setIsLoading(false));
   }, [fetchCurrentUser]);
 
   const login = useCallback(async (data: LoginApiRequest): Promise<AuthResult> => {
@@ -50,7 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: "POST",
       body: JSON.stringify(data),
     });
-    setTokens(result.accessToken, result.refreshToken);
     setUser(result.user);
     return result;
   }, []);
@@ -60,15 +53,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: "POST",
       body: JSON.stringify(data),
     });
-    setTokens(result.accessToken, result.refreshToken);
     setUser(result.user);
     return result;
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await apiClient("/api/v1/auth/logout", { method: "POST" });
+    } catch {
+      // Best-effort — redirect regardless.
+    }
     setUser(null);
-    clearTokens();
-    window.location.href = "/login";
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
   }, []);
 
   return (
