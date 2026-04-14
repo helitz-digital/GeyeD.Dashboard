@@ -172,9 +172,7 @@ export interface SaveDraftRequest {
 
 // Auth
 export interface AuthResult {
-  accessToken: string;
-  refreshToken: string;
-  expiresAtUtc: string;
+  accessExpiresAt: string;
   user: UserInfoRm;
 }
 
@@ -210,10 +208,6 @@ export interface ResetPasswordApiRequest {
 
 export interface ResendConfirmationApiRequest {
   email: string;
-}
-
-export interface RefreshTokenApiRequest {
-  refreshToken: string;
 }
 
 export interface ApiError {
