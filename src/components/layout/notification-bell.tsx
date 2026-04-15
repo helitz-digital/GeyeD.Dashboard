@@ -102,6 +102,7 @@ export function NotificationBell() {
                 size="icon-sm"
                 className="text-muted-foreground"
                 onClick={() => setOpen(false)}
+                aria-label="Close notifications"
               >
                 <X className="size-3.5" />
               </Button>

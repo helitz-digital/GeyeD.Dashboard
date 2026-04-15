@@ -76,6 +76,8 @@ export function SelectorValidator({
         onChange={(e) => onChange(e.target.value)}
         placeholder="#my-element"
         disabled={disabled}
+        aria-label="CSS selector"
+        aria-invalid={result ? !result.matched : undefined}
         className="bg-muted border border-border rounded font-mono text-sm"
       />
 
