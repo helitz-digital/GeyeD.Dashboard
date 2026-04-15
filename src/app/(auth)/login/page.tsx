@@ -35,7 +35,8 @@ function LoginForm() {
 
     try {
       await login({ email, password });
-      router.push(safeRedirect(searchParams.get("redirect"), "/"));
+      router.refresh();
+      router.replace(safeRedirect(searchParams.get("redirect"), "/"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {
