@@ -61,11 +61,14 @@ export function ThemeEditor({ currentThemeConfig, onSave, isSaving }: ThemeEdito
       </div>
 
       {/* Preset selection */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-3" role="radiogroup" aria-label="Theme preset">
         {THEME_PRESETS.map((p) => (
           <button
             key={p.id}
             type="button"
+            role="radio"
+            aria-checked={preset === p.id}
+            aria-label={`${p.name} theme preset`}
             onClick={() => setPreset(p.id)}
             className={`relative rounded-lg border-2 p-3 text-left transition-colors ${
               preset === p.id
@@ -107,55 +110,64 @@ export function ThemeEditor({ currentThemeConfig, onSave, isSaving }: ThemeEdito
       {preset === 'custom' && (
         <div className="grid grid-cols-3 gap-4 rounded-lg border border-border p-4">
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <Label htmlFor="theme-primary-color" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Primary Color
             </Label>
             <div className="flex items-center gap-2">
               <input
+                id="theme-primary-color"
                 type="color"
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
+                aria-label="Primary color picker"
                 className="h-8 w-8 cursor-pointer rounded border border-border"
               />
               <Input
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
+                aria-label="Primary color hex value"
                 className="h-8 bg-muted font-mono text-xs"
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <Label htmlFor="theme-background-color" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Background
             </Label>
             <div className="flex items-center gap-2">
               <input
+                id="theme-background-color"
                 type="color"
                 value={backgroundColor}
                 onChange={(e) => setBackgroundColor(e.target.value)}
+                aria-label="Background color picker"
                 className="h-8 w-8 cursor-pointer rounded border border-border"
               />
               <Input
                 value={backgroundColor}
                 onChange={(e) => setBackgroundColor(e.target.value)}
+                aria-label="Background color hex value"
                 className="h-8 bg-muted font-mono text-xs"
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <Label htmlFor="theme-text-color" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Text Color
             </Label>
             <div className="flex items-center gap-2">
               <input
+                id="theme-text-color"
                 type="color"
                 value={textColor}
                 onChange={(e) => setTextColor(e.target.value)}
+                aria-label="Text color picker"
                 className="h-8 w-8 cursor-pointer rounded border border-border"
               />
               <Input
                 value={textColor}
                 onChange={(e) => setTextColor(e.target.value)}
+                aria-label="Text color hex value"
                 className="h-8 bg-muted font-mono text-xs"
               />
             </div>
@@ -172,11 +184,14 @@ export function ThemeEditor({ currentThemeConfig, onSave, isSaving }: ThemeEdito
           Choose how tooltips animate between steps.
         </p>
       </div>
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-5 gap-3" role="radiogroup" aria-label="Transition style">
         {TRANSITION_PRESETS.map((t) => (
           <button
             key={t.id}
             type="button"
+            role="radio"
+            aria-checked={transitionPreset === t.id}
+            aria-label={`${t.name} transition: ${t.description}`}
             onClick={() => setTransitionPreset(t.id)}
             className={`relative rounded-lg border-2 p-3 text-left transition-colors ${
               transitionPreset === t.id

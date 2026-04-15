@@ -120,8 +120,9 @@ export default function AppsPage() {
                       }}
                       className="rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                       title="Delete app"
+                      aria-label={`Delete app ${app.name}`}
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 aria-hidden="true" className="size-4" />
                     </button>
                   )}
                 </div>
@@ -138,8 +139,9 @@ export default function AppsPage() {
                     }}
                     className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     title="Copy API key"
+                    aria-label={`Copy API key for ${app.name}`}
                   >
-                    <Copy className="size-3.5" />
+                    <Copy aria-hidden="true" className="size-3.5" />
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">Created {new Date(app.createdAtUtc).toLocaleDateString()}</p>

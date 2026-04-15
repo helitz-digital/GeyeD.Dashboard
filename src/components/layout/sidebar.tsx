@@ -135,8 +135,9 @@ export function Sidebar() {
               onClick={() => setWsSettingsOpen(true)}
               className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title="Workspace settings"
+              aria-label="Workspace settings"
             >
-              <Settings className="size-3.5" />
+              <Settings aria-hidden="true" className="size-3.5" />
             </button>
           )}
         </div>

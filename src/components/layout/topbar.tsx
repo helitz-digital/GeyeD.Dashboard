@@ -65,7 +65,7 @@ function Breadcrumbs() {
       {segments.map((segment, index) => (
         <span key={segment.href} className="flex items-center gap-1">
           {index > 0 && (
-            <ChevronRight className="size-3.5 text-muted-foreground/60" />
+            <ChevronRight aria-hidden="true" className="size-3.5 text-muted-foreground/60" />
           )}
           {index === segments.length - 1 ? (
             <span className="font-semibold text-foreground">
@@ -163,7 +163,10 @@ export function Topbar() {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <button className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-1 ring-border transition-opacity hover:opacity-80">
+              <button
+                aria-label={`Account menu for ${user?.displayName ?? user?.email ?? "user"}`}
+                className="flex size-8 cursor-pointer items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-1 ring-border transition-opacity hover:opacity-80"
+              >
                 {initials}
               </button>
             }
