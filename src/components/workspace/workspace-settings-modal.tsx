@@ -128,7 +128,7 @@ export function WorkspaceSettingsModal({
               toast.success("Workspace deleted");
               setDeleteOpen(false);
               onOpenChange(false);
-              window.location.href = `/org/${orgId}/settings`;
+              window.location.href = "/settings";
             },
             onError: (err) =>
               toast.error(err instanceof Error ? err.message : "Failed to delete workspace"),

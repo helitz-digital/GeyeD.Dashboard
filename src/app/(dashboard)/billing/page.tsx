@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -15,33 +17,41 @@ import {
   useCreateCheckout,
   useCreatePortalSession,
 } from "@/lib/api/hooks";
-import { useOrgContext } from "@/providers/org-provider";
+import { useActiveWorkspace } from "@/providers/active-workspace-provider";
 import type { CreateCheckoutRequest } from "@/lib/api/types";
 
 export default function OrgBillingPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
-  const { orgId } = useOrgContext();
+  const { orgId } = useActiveWorkspace();
 
-  const { data: billing, isLoading: billingLoading } = useBillingInfo(orgId);
-  const confirmCheckout = useConfirmCheckout(orgId);
-  const createCheckout = useCreateCheckout(orgId);
-  const createPortal = useCreatePortalSession(orgId);
+  const { data: billing, isLoading: billingLoading } = useBillingInfo(orgId ?? 0);
+  const confirmCheckout = useConfirmCheckout(orgId ?? 0);
+  const createCheckout = useCreateCheckout(orgId ?? 0);
+  const createPortal = useCreatePortalSession(orgId ?? 0);
 
-  // Confirm checkout session from Stripe redirect
+  // Confirm checkout session from Stripe redirect.
+  // Guarded by a ref so React Strict-Mode double-invoke can't double-confirm, and we strip
+  // session_id from the URL before mutating so a refresh mid-flight can't re-trigger it.
   const confirmedRef = useRef(false);
   useEffect(() => {
     if (!sessionId || !orgId || confirmedRef.current) return;
+    if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) return;
     confirmedRef.current = true;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("session_id");
+    window.history.replaceState({}, "", url.toString());
+
     confirmCheckout.mutate(sessionId, {
       onSuccess: () => {
         toast.success("Payment confirmed! Your plan has been upgraded.");
-        const url = new URL(window.location.href);
-        url.searchParams.delete("session_id");
-        window.history.replaceState({}, "", url.toString());
       },
-      onError: () => {
-        toast.error("Failed to confirm payment. Please contact support if you were charged.");
+      onError: (error: Error) => {
+        toast.error(
+          error.message ||
+            "Failed to confirm payment. Please contact support if you were charged.",
+        );
       },
     });
   }, [sessionId, orgId]); // eslint-disable-line react-hooks/exhaustive-deps

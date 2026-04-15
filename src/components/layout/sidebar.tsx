@@ -13,6 +13,7 @@ import {
   Building2,
   ChevronDown,
   BarChart3,
+  Code2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/logo";
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useOrganisations, useWorkspaces, useApp, useOrganisationMembers } from "@/lib/api/hooks";
 import { useAuth } from "@/providers/auth-provider";
+import { useActiveWorkspace } from "@/providers/active-workspace-provider";
 import { CreateWorkspaceModal } from "@/components/workspace/create-workspace-modal";
 import { WorkspaceSettingsModal } from "@/components/workspace/workspace-settings-modal";
 
@@ -32,19 +34,14 @@ export function Sidebar() {
   const pathname = usePathname();
   const params = useParams();
 
-  const routeOrgId = params?.orgId as string | undefined;
-  const wsId = params?.wsId as string | undefined;
   const appId = params?.appId as string | undefined;
 
   const { user } = useAuth();
+  const { orgId, wsId, org, workspace, setActiveOrg, setActiveWorkspace } = useActiveWorkspace();
   const { data: orgsData } = useOrganisations();
 
-  // Fall back to the user's first org when not on an /org/{id} route (e.g. /dashboard)
-  const resolvedOrgId = routeOrgId
-    ? Number(routeOrgId)
-    : orgsData?.items?.[0]?.id ?? 0;
-  const orgId = resolvedOrgId || undefined;
-  const wsIdNum = wsId ? Number(wsId) : 0;
+  const resolvedOrgId = orgId ?? 0;
+  const wsIdNum = wsId ?? 0;
   const appIdNum = appId ? Number(appId) : 0;
 
   const { data: workspacesData } = useWorkspaces(resolvedOrgId);
@@ -55,8 +52,8 @@ export function Sidebar() {
   const [createWsOpen, setCreateWsOpen] = useState(false);
   const [wsSettingsOpen, setWsSettingsOpen] = useState(false);
 
-  const currentOrg = orgsData?.items.find((o) => o.id === resolvedOrgId);
-  const currentWs = workspacesData?.items.find((w) => w.id === wsIdNum);
+  const currentOrg = org ?? orgsData?.items.find((o) => o.id === resolvedOrgId);
+  const currentWs = workspace ?? workspacesData?.items.find((w) => w.id === wsIdNum);
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -92,11 +89,11 @@ export function Sidebar() {
               }
             />
             <DropdownMenuContent align="start" className="w-56">
-              {orgsData.items.map((org) => (
-                <Link key={org.id} href={`/org/${org.id}/members`}>
+              {orgsData.items.map((orgItem) => (
+                <Link key={orgItem.id} href="/members" onClick={() => setActiveOrg(orgItem.id)}>
                   <DropdownMenuItem>
                     <Building2 className="mr-2 size-4" />
-                    {org.name}
+                    {orgItem.name}
                   </DropdownMenuItem>
                 </Link>
               ))}
@@ -120,7 +117,7 @@ export function Sidebar() {
             />
             <DropdownMenuContent align="start" className="w-56">
               {workspacesData.items.map((ws) => (
-                <Link key={ws.id} href={`/org/${orgId}/ws/${ws.id}/apps`}>
+                <Link key={ws.id} href="/apps" onClick={() => setActiveWorkspace(ws.id)}>
                   <DropdownMenuItem>
                     <FolderOpen className="mr-2 size-4" />
                     {ws.name}
@@ -175,17 +172,17 @@ export function Sidebar() {
           </Link>
 
           {/* Workspace section */}
-          {orgId && wsId && (
+          {wsId && (
             <div className="pt-4">
               <p className="mb-1 px-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Workspace
               </p>
               <Link
                 data-onboarding="apps-nav"
-                href={`/org/${orgId}/ws/${wsId}/apps`}
+                href="/apps"
                 className={cn(
                   "flex cursor-pointer items-center gap-3 rounded-md px-4 py-2 text-sm font-medium tracking-tight transition-colors",
-                  pathname.includes(`/ws/${wsId}/apps`)
+                  isActive("/apps")
                     ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-primary"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
                 )}
@@ -194,19 +191,33 @@ export function Sidebar() {
                 Apps
               </Link>
 
-              {/* Contextual app name */}
+              {/* Contextual app name + sub-nav */}
               {appId && app && (
-                <Link
-                  href={`/org/${orgId}/ws/${wsId}/apps/${appId}/tours`}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-3 rounded-md py-2 pl-10 pr-4 text-sm font-medium transition-colors",
-                    pathname.includes(`/apps/${appId}`)
-                      ? "text-sidebar-primary"
-                      : "text-sidebar-foreground hover:text-sidebar-primary"
-                  )}
-                >
-                  {app.name}
-                </Link>
+                <>
+                  <Link
+                    href={`/apps/${appId}/tours`}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-md py-2 pl-10 pr-4 text-sm font-medium transition-colors",
+                      pathname.includes(`/apps/${appId}`)
+                        ? "text-sidebar-primary"
+                        : "text-sidebar-foreground hover:text-sidebar-primary"
+                    )}
+                  >
+                    {app.name}
+                  </Link>
+                  <Link
+                    href={`/apps/${appId}/setup`}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-md py-1.5 pl-14 pr-4 text-xs font-medium transition-colors",
+                      pathname.includes(`/apps/${appId}/setup`)
+                        ? "text-sidebar-primary"
+                        : "text-muted-foreground hover:text-sidebar-primary"
+                    )}
+                  >
+                    <Code2 className="size-3.5" />
+                    Setup
+                  </Link>
+                </>
               )}
             </div>
           )}
@@ -218,10 +229,10 @@ export function Sidebar() {
                 Organisation
               </p>
               <Link
-                href={`/org/${orgId}/members`}
+                href="/members"
                 className={cn(
                   "flex cursor-pointer items-center gap-3 rounded-md px-4 py-2 text-sm font-medium tracking-tight transition-colors",
-                  isActive(`/org/${orgId}/members`)
+                  isActive("/members")
                     ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-primary"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
                 )}
@@ -231,10 +242,10 @@ export function Sidebar() {
               </Link>
               {isOwner && (
                 <Link
-                  href={`/org/${orgId}/billing`}
+                  href="/billing"
                   className={cn(
                     "flex cursor-pointer items-center gap-3 rounded-md px-4 py-2 text-sm font-medium tracking-tight transition-colors",
-                    isActive(`/org/${orgId}/billing`)
+                    isActive("/billing")
                       ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-primary"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
                   )}
@@ -244,10 +255,10 @@ export function Sidebar() {
                 </Link>
               )}
               <Link
-                href={`/org/${orgId}/settings`}
+                href="/settings"
                 className={cn(
                   "flex cursor-pointer items-center gap-3 rounded-md px-4 py-2 text-sm font-medium tracking-tight transition-colors",
-                  isActive(`/org/${orgId}/settings`)
+                  isActive("/settings")
                     ? "border-l-2 border-sidebar-primary bg-sidebar-accent text-sidebar-primary"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary"
                 )}

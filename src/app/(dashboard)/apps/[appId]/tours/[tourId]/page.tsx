@@ -1,6 +1,7 @@
 "use client";
 
 import { useTour, useDraft, useSaveDraft, usePublish, useUnpublish, useApp } from "@/lib/api/hooks";
+import { useActiveWorkspace } from "@/providers/active-workspace-provider";
 import { useOnboarding, ONBOARDING_TOUR_IDS } from "@/providers/onboarding-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { StepList } from "@/components/tours/step-list";
 import { RichTextEditor } from "@/components/tours/rich-text-editor";
 import { StepPreview } from "@/components/tours/step-preview";
-import { SelectorValidator } from "@/components/tours/selector-validator";
 import { resolveThemeColors } from "@/lib/theme";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ArrowLeft, Plus, Loader2, Trash2, Copy, Check } from "lucide-react";
 import Link from "next/link";
@@ -47,13 +47,13 @@ function CodeSnippet({ tourId }: { tourId: number }) {
 
 export default function TourDetailPage() {
   const params = useParams();
-  const orgId = params.orgId as string;
-  const wsId = Number(params.wsId);
+  const { wsId } = useActiveWorkspace();
   const appId = Number(params.appId);
   const tourId = Number(params.tourId);
 
+  const router = useRouter();
   const { data: tour } = useTour(appId, tourId);
-  const { data: app } = useApp(wsId, appId);
+  const { data: app } = useApp(wsId ?? 0, appId);
   const { data: draft } = useDraft(appId, tourId);
   const saveDraft = useSaveDraft(appId, tourId);
   const publish = usePublish(appId, tourId);
@@ -68,7 +68,6 @@ export default function TourDetailPage() {
   const [steps, setSteps] = useState<StepRequest[]>([]);
   const [urlPattern, setUrlPattern] = useState("");
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
-  const [selectedEnvUrl, setSelectedEnvUrl] = useState<string>("");
   const [triggerType, setTriggerType] = useState<TriggerType>("auto");
   const [triggerSelector, setTriggerSelector] = useState("");
   const [isRepeatable, setIsRepeatable] = useState(false);
@@ -131,7 +130,8 @@ export default function TourDetailPage() {
 
     // Advance onboarding when user first saves a tour draft
     if (currentStage === "appCreated") {
-      advanceStage("tourCreated");
+      await advanceStage("tourCreated");
+      router.push(`/apps/${appId}/setup`);
     }
   };
 
@@ -139,13 +139,12 @@ export default function TourDetailPage() {
     await publish.mutateAsync(buildRequest());
     toast.success("Tour published");
 
-    // Advance onboarding based on current stage
+    // Advance onboarding one step at a time and navigate to the next page
     if (currentStage === "appCreated") {
-      advanceStage("tourCreated");
-    } else if (currentStage === "tourCreated") {
-      advanceStage("sdkInstalled");
+      await advanceStage("tourCreated");
+      router.push(`/apps/${appId}/setup`);
     } else if (currentStage === "sdkInstalled") {
-      advanceStage("complete");
+      await advanceStage("complete");
     }
   };
 
@@ -157,25 +156,22 @@ export default function TourDetailPage() {
   // -----------------------------------------------------------------------
   // Trigger onboarding SDK tour when arriving at the right stage
   // -----------------------------------------------------------------------
-  const hasTriggeredTour = useRef(false);
   useEffect(() => {
-    if (!draft || hasTriggeredTour.current) return;
+    if (!draft) return;
 
+    let tourIdToStart: number | null = null;
     if (currentStage === "appCreated") {
-      hasTriggeredTour.current = true;
-      // Small delay so DOM elements with data-onboarding attributes are rendered
-      const timer = setTimeout(() => {
-        startOnboardingTour(ONBOARDING_TOUR_IDS.BUILD_TOUR);
-      }, 600);
-      return () => clearTimeout(timer);
+      tourIdToStart = ONBOARDING_TOUR_IDS.BUILD_TOUR;
     }
-    if (currentStage === "sdkInstalled") {
-      hasTriggeredTour.current = true;
-      const timer = setTimeout(() => {
-        startOnboardingTour(ONBOARDING_TOUR_IDS.PUBLISH);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
+
+    if (tourIdToStart === null) return;
+
+    // Small delay so DOM elements with data-onboarding attributes are rendered
+    const id = tourIdToStart;
+    const timer = setTimeout(() => {
+      startOnboardingTour(id);
+    }, 600);
+    return () => clearTimeout(timer);
   }, [draft, currentStage, startOnboardingTour]);
 
   const activeStep = steps[activeStepIndex];
@@ -203,7 +199,7 @@ export default function TourDetailPage() {
         <div className="flex items-end justify-between">
           <div className="flex items-center gap-4">
             <Link
-              href={`/org/${orgId}/ws/${params.wsId}/apps/${params.appId}/tours`}
+              href={`/apps/${appId}/tours`}
               className="flex size-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <ArrowLeft className="size-4" />
@@ -256,8 +252,8 @@ export default function TourDetailPage() {
       {/* Two-panel layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel - Step sidebar */}
-        <aside data-onboarding="step-list" className="flex w-80 flex-col border-r border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <aside className="flex w-80 flex-col border-r border-border bg-card">
+          <div data-onboarding="step-list" className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Tour Steps
@@ -343,10 +339,11 @@ export default function TourDetailPage() {
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Trigger Element Selector
                   </Label>
-                  <SelectorValidator
+                  <Input
                     value={triggerSelector}
-                    onChange={setTriggerSelector}
-                    environmentUrl={selectedEnvUrl || undefined}
+                    onChange={(e) => setTriggerSelector(e.target.value)}
+                    placeholder="#help-btn, .onboarding-trigger"
+                    className="bg-muted border border-border rounded font-mono text-xs"
                   />
                   <p className="text-[10px] text-muted-foreground">
                     CSS selector of the element that triggers the tour (e.g. #help-btn, .onboarding-trigger)
@@ -379,22 +376,6 @@ export default function TourDetailPage() {
                   <Switch checked={isRepeatable} onCheckedChange={setIsRepeatable} />
                 </div>
               )}
-            </div>
-
-            {/* Site URL for selector validation */}
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Site URL (for selector validation)
-              </Label>
-              <Input
-                value={selectedEnvUrl}
-                onChange={e => setSelectedEnvUrl(e.target.value)}
-                placeholder="https://your-app.com"
-                className="bg-muted border border-border rounded"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Enter your site URL to validate CSS selectors against your live page
-              </p>
             </div>
 
             {/* Tour-level transition preset */}
@@ -462,10 +443,11 @@ export default function TourDetailPage() {
                       CSS Selector
                     </Label>
                     <div data-onboarding="selector-field">
-                      <SelectorValidator
+                      <Input
                         value={activeStep.targetSelector}
-                        onChange={(v) => handleStepChange(activeStepIndex, "targetSelector", v)}
-                        environmentUrl={selectedEnvUrl || undefined}
+                        onChange={(e) => handleStepChange(activeStepIndex, "targetSelector", e.target.value)}
+                        placeholder="#welcome-banner, .hero-section"
+                        className="bg-muted border border-border rounded font-mono text-xs"
                       />
                     </div>
                   </div>

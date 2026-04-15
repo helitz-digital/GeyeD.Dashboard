@@ -17,13 +17,13 @@ import {
 import { useAuth } from "@/providers/auth-provider";
 import { useOnboarding } from "@/providers/onboarding-provider";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
+import { useState, useRef, useEffect } from "react";
 
 function Breadcrumbs() {
   const pathname = usePathname();
   const params = useParams();
 
-  const orgId = params?.orgId as string | undefined;
-  const wsId = params?.wsId as string | undefined;
   const appId = params?.appId as string | undefined;
   const tourId = params?.tourId as string | undefined;
 
@@ -31,43 +31,33 @@ function Breadcrumbs() {
 
   if (pathname.startsWith("/dashboard")) {
     segments.push({ label: "Dashboard", href: "/dashboard" });
-  } else if (orgId) {
-    if (pathname.includes("/settings") && !pathname.includes("/ws/")) {
-      segments.push({ label: "Organisation Settings", href: `/org/${orgId}/settings` });
-    } else if (pathname.includes("/billing")) {
-      segments.push({ label: "Billing", href: `/org/${orgId}/billing` });
-    } else if (pathname.includes("/members")) {
-      segments.push({ label: "Members", href: `/org/${orgId}/members` });
-    } else if (wsId) {
-      // Workspace settings stands alone — not under "Apps"
-      if (pathname.endsWith("/settings")) {
-        segments.push({
-          label: "Workspace Settings",
-          href: `/org/${orgId}/ws/${wsId}/settings`,
-        });
-      } else {
-        segments.push({
-          label: "Apps",
-          href: `/org/${orgId}/ws/${wsId}/apps`,
-        });
-
-        if (appId) {
-          segments.push({
-            label: "Tours",
-            href: `/org/${orgId}/ws/${wsId}/apps/${appId}/tours`,
-          });
-
-          if (tourId) {
-            segments.push({
-              label: "Tour Builder",
-              href: `/org/${orgId}/ws/${wsId}/apps/${appId}/tours/${tourId}`,
-            });
-          }
-        }
-      }
-    }
   } else if (pathname.startsWith("/analytics")) {
     segments.push({ label: "Analytics", href: "/analytics" });
+  } else if (pathname.startsWith("/settings")) {
+    segments.push({ label: "Settings", href: "/settings" });
+  } else if (pathname.startsWith("/billing")) {
+    segments.push({ label: "Billing", href: "/billing" });
+  } else if (pathname.startsWith("/members")) {
+    segments.push({ label: "Members", href: "/members" });
+  } else if (pathname.startsWith("/apps")) {
+    segments.push({
+      label: "Apps",
+      href: "/apps",
+    });
+
+    if (appId) {
+      segments.push({
+        label: "Tours",
+        href: `/apps/${appId}/tours`,
+      });
+
+      if (tourId) {
+        segments.push({
+          label: "Tour Builder",
+          href: `/apps/${appId}/tours/${tourId}`,
+        });
+      }
+    }
   }
 
   return (
@@ -97,7 +87,21 @@ function Breadcrumbs() {
 
 export function Topbar() {
   const { user, logout } = useAuth();
-  const { restartOnboarding } = useOnboarding();
+  const { restartOnboarding, isOnboarding } = useOnboarding();
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpRef = useRef<HTMLDivElement>(null);
+
+  // Close panel on click outside
+  useEffect(() => {
+    if (!helpOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (helpRef.current && !helpRef.current.contains(e.target as Node)) {
+        setHelpOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [helpOpen]);
 
   const initials = user?.displayName
     ? user.displayName
@@ -119,22 +123,42 @@ export function Topbar() {
       <div className="flex items-center gap-3">
         <NotificationBell />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <button className="flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
-                <HelpCircle className="size-4" />
-                <span className="sr-only">Help</span>
-              </button>
-            }
-          />
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => restartOnboarding()}>
-              <PlayCircle className="mr-2 size-4" />
-              Replay onboarding
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div ref={helpRef} className="relative">
+          <button
+            onClick={() => setHelpOpen((o) => !o)}
+            className="relative flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <HelpCircle className="size-4" />
+            <span className="sr-only">Help</span>
+            {isOnboarding && (
+              <span className="absolute -right-0.5 -top-0.5 flex size-2.5">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+              </span>
+            )}
+          </button>
+
+          {helpOpen && (
+            <div className="absolute right-0 top-full mt-2 w-96 rounded-lg border border-border bg-card shadow-lg z-50">
+              {isOnboarding ? (
+                <OnboardingChecklist onClose={() => setHelpOpen(false)} />
+              ) : (
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      restartOnboarding();
+                      setHelpOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                  >
+                    <PlayCircle className="size-4" />
+                    Replay onboarding
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger

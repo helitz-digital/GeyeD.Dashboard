@@ -16,13 +16,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useActivity, useOrganisations, useWorkspaces, useAnalyticsOverview } from "@/lib/api/hooks";
+import { useOnboarding, ONBOARDING_TOUR_IDS } from "@/providers/onboarding-provider";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect } from "react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { MetricCard } from "@/components/shared/metric-card";
 import { ActivityItem } from "@/components/shared/activity-item";
 import { SubscriptionGate } from "@/components/billing/subscription-gate";
-import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 
 
 const activityIconMap: Record<string, { icon: LucideIcon; iconBg: string }> = {
@@ -63,6 +64,19 @@ function MetricSkeleton() {
 }
 
 export default function DashboardPage() {
+  const { currentStage, startOnboardingTour } = useOnboarding();
+
+  // Trigger the Welcome & Orientation overlay tour for brand-new users
+  useEffect(() => {
+    if (currentStage !== "notStarted") return;
+
+    // Delay so the sidebar and page header DOM targets are rendered
+    const timer = setTimeout(() => {
+      startOnboardingTour(ONBOARDING_TOUR_IDS.ORIENTATION);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [currentStage, startOnboardingTour]);
+
   const { data: activityData, isLoading: activityLoading } = useActivity(1, 10);
   const { data: orgsData, isLoading: orgsLoading } = useOrganisations(1, 1);
   const orgId = orgsData?.items?.[0]?.id ?? 0;
@@ -103,9 +117,6 @@ export default function DashboardPage() {
         title="Overview"
         description="Welcome back. Here is what's happening with your tours today."
       />
-
-      {/* Onboarding checklist — shown until all steps are complete */}
-      <OnboardingChecklist />
 
       {/* Metrics Grid */}
       <SubscriptionGate status={subscriptionStatus} feature="dashboard analytics" orgId={orgId}>

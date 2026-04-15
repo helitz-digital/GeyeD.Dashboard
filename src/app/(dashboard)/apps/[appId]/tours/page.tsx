@@ -1,6 +1,7 @@
 "use client";
 
 import { useTours, useCreateTour, useDeleteTour, useTourCompletionRates, useApp, useUpdateAppTheme } from "@/lib/api/hooks";
+import { useActiveWorkspace } from "@/providers/active-workspace-provider";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -32,8 +33,9 @@ import { Separator } from "@/components/ui/separator";
 import { Route, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useOnboarding } from "@/providers/onboarding-provider";
 
 type TabFilter = "all" | "draft" | "published";
 
@@ -43,13 +45,12 @@ const getTourIconColor = (isPublished: boolean) =>
 export default function ToursPage() {
   const params = useParams();
   const router = useRouter();
-  const orgId = Number(params.orgId);
-  const wsId = Number(params.wsId);
+  const { wsId } = useActiveWorkspace();
   const appId = Number(params.appId);
   const { data, isLoading } = useTours(appId);
   const { data: completionData } = useTourCompletionRates(appId);
-  const { data: app } = useApp(wsId, appId);
-  const updateTheme = useUpdateAppTheme(wsId, appId);
+  const { data: app } = useApp(wsId ?? 0, appId);
+  const updateTheme = useUpdateAppTheme(wsId ?? 0, appId);
   const createMutation = useCreateTour(appId);
   const deleteMutation = useDeleteTour(appId);
   const [open, setOpen] = useState(false);
@@ -57,6 +58,14 @@ export default function ToursPage() {
   const [description, setDescription] = useState("");
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const { currentStage, tourId: onboardingTourId } = useOnboarding();
+
+  // During onboarding, auto-navigate into the sample tour editor
+  useEffect(() => {
+    if (currentStage === "appCreated" && onboardingTourId) {
+      router.replace(`/apps/${appId}/tours/${onboardingTourId}`);
+    }
+  }, [currentStage, onboardingTourId, appId, router]);
 
   const items = data?.items ?? [];
   const filteredTours = activeTab === "all"
@@ -73,7 +82,7 @@ export default function ToursPage() {
     setName("");
     setDescription("");
     setOpen(false);
-    router.push(`/org/${orgId}/ws/${wsId}/apps/${appId}/tours/${result.id}`);
+    router.push(`/apps/${appId}/tours/${result.id}`);
   };
 
   return (
@@ -226,7 +235,7 @@ export default function ToursPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Link href={`/org/${orgId}/ws/${wsId}/apps/${appId}/tours/${tour.id}`}>
+                      <Link href={`/apps/${appId}/tours/${tour.id}`}>
                         <Button variant="ghost" size="sm">
                           Edit
                         </Button>

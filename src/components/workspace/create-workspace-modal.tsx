@@ -36,7 +36,7 @@ export function CreateWorkspaceModal({ orgId, open, onOpenChange }: CreateWorksp
       toast.success(`Workspace "${name.trim()}" created`);
       setName("");
       onOpenChange(false);
-      router.push(`/org/${orgId}/ws/${data.id}/apps`);
+      router.push("/apps");
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to create workspace");
     }

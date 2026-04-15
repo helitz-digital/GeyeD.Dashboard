@@ -24,17 +24,17 @@ import {
   useInviteToOrganisation,
   useRevokeOrganisationInvitation,
 } from "@/lib/api/hooks";
-import { useOrgContext } from "@/providers/org-provider";
+import { useActiveWorkspace } from "@/providers/active-workspace-provider";
 import { useAuth } from "@/providers/auth-provider";
 
 export default function OrgMembersPage() {
-  const { orgId } = useOrgContext();
+  const { orgId } = useActiveWorkspace();
   const { user } = useAuth();
-  const { data: members, isLoading: membersLoading } = useOrganisationMembers(orgId);
-  const { data: invitations } = useOrganisationInvitations(orgId);
-  const removeMember = useRemoveOrganisationMember(orgId);
-  const invite = useInviteToOrganisation(orgId);
-  const revokeInvitation = useRevokeOrganisationInvitation(orgId);
+  const { data: members, isLoading: membersLoading } = useOrganisationMembers(orgId ?? 0);
+  const { data: invitations } = useOrganisationInvitations(orgId ?? 0);
+  const removeMember = useRemoveOrganisationMember(orgId ?? 0);
+  const invite = useInviteToOrganisation(orgId ?? 0);
+  const revokeInvitation = useRevokeOrganisationInvitation(orgId ?? 0);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
