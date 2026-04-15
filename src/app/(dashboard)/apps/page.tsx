@@ -2,10 +2,8 @@
 
 import { useApps, useCreateApp, useDeleteApp, useOrganisationMembers } from "@/lib/api/hooks";
 import { useAuth } from "@/providers/auth-provider";
-import { useOrgContext } from "@/providers/org-provider";
-import { useWorkspaceContext } from "@/providers/workspace-provider";
+import { useActiveWorkspace } from "@/providers/active-workspace-provider";
 import { useOnboarding, ONBOARDING_TOUR_IDS } from "@/providers/onboarding-provider";
-import { SdkInstallSection } from "@/components/onboarding/sdk-install-section";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DeleteConfirmationDialog } from "@/components/shared/delete-confirmation-dialog";
@@ -17,42 +15,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { Copy, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AppsPage() {
-  const { orgId, org } = useOrgContext();
-  const { wsId } = useWorkspaceContext();
+  const { orgId, wsId, org } = useActiveWorkspace();
   const subscriptionStatus = org?.subscriptionStatus;
   const isSubscriptionActive =
     subscriptionStatus === "Trialing" ||
     subscriptionStatus === "Active" ||
     subscriptionStatus === "PastDue";
-  const { data, isLoading } = useApps(isSubscriptionActive ? wsId : 0);
-  const { data: members } = useOrganisationMembers(orgId);
+  const { data, isLoading } = useApps(isSubscriptionActive ? (wsId ?? 0) : 0);
+  const { data: members } = useOrganisationMembers(orgId ?? 0);
   const { user } = useAuth();
-  const createMutation = useCreateApp(wsId);
-  const deleteMutation = useDeleteApp(wsId);
+  const createMutation = useCreateApp(wsId ?? 0);
+  const deleteMutation = useDeleteApp(wsId ?? 0);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
   const isOwner = members?.some((m) => m.userId === user?.id && m.role === "Owner") ?? false;
+  const router = useRouter();
   const { advanceStage, currentStage, startOnboardingTour } = useOnboarding();
 
-  // Trigger the Install SDK overlay tour when arriving at the tourCreated stage
-  const hasTriggeredInstallTour = useRef(false);
+  // Trigger the Create App overlay tour when arriving at the orientationComplete stage
   useEffect(() => {
-    if (currentStage === "tourCreated" && data?.items?.[0] && !hasTriggeredInstallTour.current) {
-      hasTriggeredInstallTour.current = true;
-      // Delay so SdkInstallSection renders and its data-onboarding targets exist
-      const timer = setTimeout(() => {
-        startOnboardingTour(ONBOARDING_TOUR_IDS.INSTALL_SDK);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [currentStage, data, startOnboardingTour]);
+    if (currentStage !== "orientationComplete") return;
+
+    const timer = setTimeout(() => {
+      startOnboardingTour(ONBOARDING_TOUR_IDS.CREATE_APP);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [currentStage, startOnboardingTour]);
 
   const handleCreate = async () => {
     try {
@@ -60,9 +56,11 @@ export default function AppsPage() {
       setName("");
       setOpen(false);
 
-      // Advance onboarding when the user creates their first app
+      // Advance onboarding when the user creates their first app,
+      // then navigate into the tour editor so the journey continues
       if (currentStage === "orientationComplete") {
-        advanceStage("appCreated", { appId: app.id });
+        await advanceStage("appCreated", { appId: app.id });
+        router.push(`/apps/${app.id}/tours`);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create app.");
@@ -99,7 +97,7 @@ export default function AppsPage() {
         }
       />
 
-      <SubscriptionGate status={subscriptionStatus} feature="apps" orgId={orgId}>
+      <SubscriptionGate status={subscriptionStatus} feature="apps" orgId={orgId ?? undefined}>
       {isLoading && <p className="text-muted-foreground">Loading...</p>}
       
       {data && data.items.length === 0 && (
@@ -108,7 +106,7 @@ export default function AppsPage() {
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {data?.items.map(app => (
-          <Link key={app.id} href={`/org/${orgId}/ws/${wsId}/apps/${app.id}/tours`}>
+          <Link key={app.id} href={`/apps/${app.id}/tours`}>
             <Card className="bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -150,15 +148,6 @@ export default function AppsPage() {
           </Link>
         ))}
       </div>
-
-      {/* Show SDK install instructions during onboarding */}
-      {currentStage === "tourCreated" && data?.items?.[0] && (
-        <SdkInstallSection
-          apiKey={data.items[0].apiKey}
-          onVerify={() => advanceStage("sdkInstalled")}
-          onSkip={() => advanceStage("sdkInstalled")}
-        />
-      )}
 
       <DeleteConfirmationDialog
         open={deleteTarget !== null}

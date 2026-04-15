@@ -24,7 +24,7 @@ export function Celebration({ onDismiss, orgId, wsId, appId }: CelebrationProps)
       icon: Palette,
       title: "Customize theme",
       description: "Match your brand colors",
-      href: `/org/${orgId}/ws/${wsId}/apps/${appId}/tours`,
+      href: `/apps/${appId}/tours`,
     },
     {
       icon: BarChart3,
@@ -49,11 +49,11 @@ export function Celebration({ onDismiss, orgId, wsId, appId }: CelebrationProps)
           <PartyPopper className="mx-auto size-12 text-primary" />
         </div>
         <h2 className="text-xl font-bold text-foreground">
-          Your first tour is live!
+          You're all set!
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          You&apos;ve just published a product tour to your website. Your users
-          will see it on their next visit.
+          Your first product tour is live. Users will see it on their next visit
+          to your site.
         </p>
         <div className="mt-6 grid grid-cols-3 gap-3">
           {suggestions.map((s) => (

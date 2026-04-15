@@ -42,7 +42,7 @@ export function SubscriptionGate({
   }
 
   const isCanceled = status === "Canceled";
-  const billingHref = orgId ? `/org/${orgId}/billing` : "/dashboard";
+  const billingHref = "/billing";
 
   return (
     <div className="relative">

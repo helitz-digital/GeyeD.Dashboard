@@ -1,24 +1,7 @@
-// Tour type matching the SDK's SdkTour interface
-interface OnboardingTour {
-  tourId: number;
-  tourName: string;
-  versionId: number;
-  urlPattern: string | null;
-  triggerType: "external";
-  triggerSelector: string | null;
-  isRepeatable: boolean;
-  themeConfig: string | null;
-  transitionPreset: string | null;
-  steps: {
-    id: number;
-    order: number;
-    title: string;
-    content: string;
-    targetSelector: string;
-    placement: "top" | "bottom" | "left" | "right";
-    transitionPreset: string | null;
-  }[];
-}
+import type { SdkTour } from "@geyed/sdk";
+
+// Re-use the SDK's SdkTour type directly so tour definitions stay in sync.
+type OnboardingTour = SdkTour;
 
 // IDs use negative numbers to avoid collision with real tours
 export const ONBOARDING_TOUR_IDS = {
@@ -26,7 +9,6 @@ export const ONBOARDING_TOUR_IDS = {
   CREATE_APP: -2,
   BUILD_TOUR: -3,
   INSTALL_SDK: -4,
-  PUBLISH: -5,
 } as const;
 
 export const orientationTour: OnboardingTour = {
@@ -99,7 +81,7 @@ export const createAppTour: OnboardingTour = {
       order: 0,
       title: "Create Your First App",
       content:
-        "Click the button below to create an app for your website. Give it a name and enter your site URL.",
+        "Click the button below to create an app for your website. Give it a name to get started.",
       targetSelector: "[data-onboarding='create-app-button']",
       placement: "bottom",
       transitionPreset: null,
@@ -153,8 +135,18 @@ export const buildTourTour: OnboardingTour = {
       order: 3,
       title: "Tour Settings",
       content:
-        "Set the URL pattern, trigger type, and theme for your tour. When you're ready, we'll publish it!",
+        "Set the URL pattern, trigger type, and theme for your tour.",
       targetSelector: "[data-onboarding='tour-settings']",
+      placement: "bottom",
+      transitionPreset: null,
+    },
+    {
+      id: -24,
+      order: 4,
+      title: "Save & Publish",
+      content:
+        "When you're happy with your tour, click Save & Publish to make it live. You can always come back and edit later.",
+      targetSelector: "[data-onboarding='publish-button']",
       placement: "bottom",
       transitionPreset: null,
     },
@@ -187,42 +179,8 @@ export const installSdkTour: OnboardingTour = {
       order: 1,
       title: "Install the SDK",
       content:
-        "Add this snippet to your website. You can use the CDN script tag or install via npm.",
+        "Choose your preferred method — CDN, npm, or React — and add the snippet to your website.",
       targetSelector: "[data-onboarding='install-snippet']",
-      placement: "bottom",
-      transitionPreset: null,
-    },
-    {
-      id: -32,
-      order: 2,
-      title: "Verify Connection",
-      content:
-        "Once you've added the SDK, click 'Verify' to confirm it's working. You can also skip this and verify later.",
-      targetSelector: "[data-onboarding='verify-button']",
-      placement: "top",
-      transitionPreset: null,
-    },
-  ],
-};
-
-export const publishTour: OnboardingTour = {
-  tourId: ONBOARDING_TOUR_IDS.PUBLISH,
-  tourName: "Publish & Celebrate",
-  versionId: -5,
-  urlPattern: null,
-  triggerType: "external",
-  triggerSelector: null,
-  isRepeatable: true,
-  themeConfig: null,
-  transitionPreset: "smooth",
-  steps: [
-    {
-      id: -40,
-      order: 0,
-      title: "Time to Go Live!",
-      content:
-        "Click Publish to make your tour live on your website. Your users will see it on their next visit.",
-      targetSelector: "[data-onboarding='publish-button']",
       placement: "bottom",
       transitionPreset: null,
     },
@@ -234,5 +192,4 @@ export const allOnboardingTours = [
   createAppTour,
   buildTourTour,
   installSdkTour,
-  publishTour,
 ];

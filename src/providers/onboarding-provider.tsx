@@ -39,7 +39,7 @@ interface OnboardingContextValue {
   defaultWorkspaceId: number | null;
   skipOnboarding: () => void;
   restartOnboarding: () => void;
-  advanceStage: (stage: OnboardingStage, meta?: { appId?: number }) => void;
+  advanceStage: (stage: OnboardingStage, meta?: { appId?: number }) => Promise<void>;
   /** Start a specific SDK overlay tour by ID. Pages call this on mount. */
   startOnboardingTour: (tourId: number) => void;
 }
@@ -74,6 +74,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
+  const prevStageRef = useRef<OnboardingStage | null>(null);
 
   const currentStage = status?.stage ?? null;
   const isOnboarding =
@@ -89,7 +90,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const sdk = getSdk();
     sdk.init({
-      tours: allOnboardingTours as Parameters<typeof sdk.init>[0]["tours"],
+      tours: allOnboardingTours,
       debug: false,
     });
     setSdkReady(true);
@@ -108,12 +109,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     const sdk = getSdk();
 
     const handleComplete: SdkEventCallback = (data) => {
-      if (data.tourId === ONBOARDING_TOUR_IDS.BUILD_TOUR) {
-        completeStageRef.current.mutate({ stage: "tourCreated" });
+      if (data.tourId === ONBOARDING_TOUR_IDS.ORIENTATION) {
+        completeStageRef.current.mutate({ stage: "orientationComplete" });
       } else if (data.tourId === ONBOARDING_TOUR_IDS.INSTALL_SDK) {
         completeStageRef.current.mutate({ stage: "sdkInstalled" });
-      } else if (data.tourId === ONBOARDING_TOUR_IDS.PUBLISH) {
-        completeStageRef.current.mutate({ stage: "complete" });
       }
     };
 
@@ -122,20 +121,6 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       sdk.off("tour_completed", handleComplete);
     };
   }, [sdkReady]);
-
-  // -----------------------------------------------------------------------
-  // Auto-advance past "notStarted" → "orientationComplete"
-  // -----------------------------------------------------------------------
-  const hasAutoAdvanced = useRef(false);
-  useEffect(() => {
-    if (currentStage === "notStarted" && !hasAutoAdvanced.current) {
-      hasAutoAdvanced.current = true;
-      completeStage.mutate({ stage: "orientationComplete" });
-    }
-    if (currentStage !== "notStarted") {
-      hasAutoAdvanced.current = false;
-    }
-  }, [currentStage, completeStage]);
 
   // -----------------------------------------------------------------------
   // Actions
@@ -151,15 +136,19 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   }, [reset]);
 
   const advanceStage = useCallback(
-    (stage: OnboardingStage, meta?: { appId?: number }) => {
-      completeStage.mutate({ stage });
+    async (stage: OnboardingStage, meta?: { appId?: number }) => {
+      const result = await completeStage.mutateAsync({ stage });
 
       if (stage === "appCreated" && meta?.appId) {
-        createSampleTour.mutate({ appId: meta.appId });
+        await createSampleTour.mutateAsync({ appId: meta.appId });
       }
 
-      if (stage === "complete" && status?.defaultOrgId && status?.defaultWorkspaceId && status?.appId) {
-        setShowCelebration(true);
+      if (stage === "complete") {
+        // Use the mutation response (fresh data) rather than the stale closure
+        const s = result ?? status;
+        if (s?.defaultOrgId && s?.defaultWorkspaceId && s?.appId) {
+          setShowCelebration(true);
+        }
       }
     },
     [completeStage, createSampleTour, status],
@@ -175,6 +164,23 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     },
     [sdkReady, isOnboarding],
   );
+
+  // Show celebration only when the stage *transitions* to "complete" (not on initial load)
+  useEffect(() => {
+    const prev = prevStageRef.current;
+    prevStageRef.current = currentStage;
+
+    if (
+      prev !== null &&
+      prev !== "complete" &&
+      currentStage === "complete" &&
+      status?.defaultOrgId &&
+      status?.defaultWorkspaceId &&
+      status?.appId
+    ) {
+      setShowCelebration(true);
+    }
+  }, [currentStage, status]);
 
   // -----------------------------------------------------------------------
   // Render

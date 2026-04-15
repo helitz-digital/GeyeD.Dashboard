@@ -17,7 +17,7 @@ export function UpgradePrompt({ message, orgId }: UpgradePromptProps) {
           {message}
         </p>
         <Link
-          href={`/org/${orgId}/billing`}
+          href="/billing"
           className="text-amber-700 underline underline-offset-2 transition-colors hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100"
         >
           Upgrade your plan

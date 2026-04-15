@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   Check,
   Circle,
+  Compass,
   AppWindow,
   Pencil,
   Code2,
@@ -40,16 +41,20 @@ interface RouteCtx {
 
 const STEPS: StepDef[] = [
   {
-    // notStarted and orientationComplete both mean "haven't created an app yet"
-    stages: ["notStarted", "orientationComplete"],
+    stages: ["notStarted"],
+    label: "Take the tour",
+    description: "A quick walkthrough of the platform to get you oriented.",
+    icon: Compass,
+    actionLabel: "Start Tour",
+    getHref: () => null, // Tour starts automatically on the dashboard
+  },
+  {
+    stages: ["orientationComplete"],
     label: "Create your first app",
     description: "Add your website or product as an app to get started.",
     icon: AppWindow,
     actionLabel: "Go to Apps",
-    getHref: (ctx) => {
-      if (!ctx.orgId || !ctx.wsId) return null;
-      return `/org/${ctx.orgId}/ws/${ctx.wsId}/apps`;
-    },
+    getHref: () => `/apps`,
   },
   {
     stages: ["appCreated"],
@@ -58,8 +63,8 @@ const STEPS: StepDef[] = [
     icon: Pencil,
     actionLabel: "Edit Tour",
     getHref: (ctx) => {
-      if (!ctx.orgId || !ctx.wsId || !ctx.appId || !ctx.tourId) return null;
-      return `/org/${ctx.orgId}/ws/${ctx.wsId}/apps/${ctx.appId}/tours/${ctx.tourId}`;
+      if (!ctx.appId || !ctx.tourId) return null;
+      return `/apps/${ctx.appId}/tours/${ctx.tourId}`;
     },
   },
   {
@@ -69,19 +74,19 @@ const STEPS: StepDef[] = [
     icon: Code2,
     actionLabel: "View Setup",
     getHref: (ctx) => {
-      if (!ctx.orgId || !ctx.wsId) return null;
-      return `/org/${ctx.orgId}/ws/${ctx.wsId}/apps`;
+      if (!ctx.appId) return null;
+      return `/apps/${ctx.appId}/setup`;
     },
   },
   {
     stages: ["sdkInstalled"],
-    label: "Publish your tour",
-    description: "Go live — your users will see the tour on their next visit.",
+    label: "Go live",
+    description: "Publish your tour so your users see it on their next visit.",
     icon: Rocket,
-    actionLabel: "Go to Tour",
+    actionLabel: "Open Tour",
     getHref: (ctx) => {
-      if (!ctx.orgId || !ctx.wsId || !ctx.appId || !ctx.tourId) return null;
-      return `/org/${ctx.orgId}/ws/${ctx.wsId}/apps/${ctx.appId}/tours/${ctx.tourId}`;
+      if (!ctx.appId || !ctx.tourId) return null;
+      return `/apps/${ctx.appId}/tours/${ctx.tourId}`;
     },
   },
 ];
@@ -101,7 +106,11 @@ function stageToStepIndex(stage: OnboardingStage): number {
 // Component
 // ---------------------------------------------------------------------------
 
-export function OnboardingChecklist() {
+interface OnboardingChecklistProps {
+  onClose?: () => void;
+}
+
+export function OnboardingChecklist({ onClose }: OnboardingChecklistProps = {}) {
   const { currentStage, isOnboarding, appId, tourId, skipOnboarding } =
     useOnboarding();
   const { orgId, wsId } = useActiveWorkspace();
@@ -113,7 +122,7 @@ export function OnboardingChecklist() {
   const ctx: RouteCtx = { orgId, wsId, appId, tourId };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
+    <div className="p-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -127,7 +136,10 @@ export function OnboardingChecklist() {
         <Button
           variant="ghost"
           size="icon-sm"
-          onClick={skipOnboarding}
+          onClick={() => {
+            skipOnboarding();
+            onClose?.();
+          }}
           className="text-muted-foreground"
         >
           <X className="size-3.5" />
