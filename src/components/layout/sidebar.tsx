@@ -37,7 +37,7 @@ export function Sidebar() {
   const appId = params?.appId as string | undefined;
 
   const { user } = useAuth();
-  const { orgId, wsId, org, workspace } = useActiveWorkspace();
+  const { orgId, wsId, org, workspace, setActiveOrg, setActiveWorkspace } = useActiveWorkspace();
   const { data: orgsData } = useOrganisations();
 
   const resolvedOrgId = orgId ?? 0;
@@ -90,7 +90,7 @@ export function Sidebar() {
             />
             <DropdownMenuContent align="start" className="w-56">
               {orgsData.items.map((orgItem) => (
-                <Link key={orgItem.id} href="/members">
+                <Link key={orgItem.id} href="/members" onClick={() => setActiveOrg(orgItem.id)}>
                   <DropdownMenuItem>
                     <Building2 className="mr-2 size-4" />
                     {orgItem.name}
@@ -117,7 +117,7 @@ export function Sidebar() {
             />
             <DropdownMenuContent align="start" className="w-56">
               {workspacesData.items.map((ws) => (
-                <Link key={ws.id} href="/apps">
+                <Link key={ws.id} href="/apps" onClick={() => setActiveWorkspace(ws.id)}>
                   <DropdownMenuItem>
                     <FolderOpen className="mr-2 size-4" />
                     {ws.name}
