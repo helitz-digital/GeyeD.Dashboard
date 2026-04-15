@@ -245,8 +245,9 @@ export default function ToursPage() {
                         size="sm"
                         className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         onClick={() => setDeleteTarget({ id: tour.id, name: tour.name })}
+                        aria-label={`Delete tour ${tour.name}`}
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 aria-hidden="true" className="size-3.5" />
                       </Button>
                     </div>
                   </TableCell>

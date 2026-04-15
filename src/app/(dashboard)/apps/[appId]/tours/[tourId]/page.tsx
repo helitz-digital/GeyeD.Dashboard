@@ -37,9 +37,10 @@ function CodeSnippet({ tourId }: { tourId: number }) {
       <button
         type="button"
         onClick={handleCopy}
+        aria-label={copied ? "Snippet copied" : "Copy snippet"}
         className="flex size-7 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
       >
-        {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        {copied ? <Check aria-hidden="true" className="size-3.5" /> : <Copy aria-hidden="true" className="size-3.5" />}
       </button>
     </div>
   );
@@ -200,9 +201,10 @@ export default function TourDetailPage() {
           <div className="flex items-center gap-4">
             <Link
               href={`/apps/${appId}/tours`}
+              aria-label="Back to tours"
               className="flex size-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <ArrowLeft className="size-4" />
+              <ArrowLeft aria-hidden="true" className="size-4" />
             </Link>
             <div className="space-y-1">
               <h1 className="text-2xl font-extrabold tracking-tight text-heading">
@@ -283,10 +285,11 @@ export default function TourDetailPage() {
             <div data-onboarding="tour-settings" className="space-y-6">
             {/* URL Pattern */}
             <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <Label htmlFor="tour-url-pattern" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 URL Pattern
               </Label>
               <Input
+                id="tour-url-pattern"
                 value={urlPattern}
                 onChange={e => setUrlPattern(e.target.value)}
                 placeholder="/* (matches all pages)"
@@ -336,10 +339,11 @@ export default function TourDetailPage() {
               {/* Click trigger: selector input */}
               {triggerType === "click" && (
                 <div className="space-y-2 pt-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <Label htmlFor="tour-trigger-selector" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     Trigger Element Selector
                   </Label>
                   <Input
+                    id="tour-trigger-selector"
                     value={triggerSelector}
                     onChange={(e) => setTriggerSelector(e.target.value)}
                     placeholder="#help-btn, .onboarding-trigger"
@@ -427,10 +431,11 @@ export default function TourDetailPage() {
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <Label htmlFor="step-title" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Title
                     </Label>
                     <Input
+                      id="step-title"
                       value={activeStep.title}
                       onChange={e => handleStepChange(activeStepIndex, "title", e.target.value)}
                       placeholder="Step title"
@@ -439,11 +444,12 @@ export default function TourDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <Label htmlFor="step-selector" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       CSS Selector
                     </Label>
                     <div data-onboarding="selector-field">
                       <Input
+                        id="step-selector"
                         value={activeStep.targetSelector}
                         onChange={(e) => handleStepChange(activeStepIndex, "targetSelector", e.target.value)}
                         placeholder="#welcome-banner, .hero-section"

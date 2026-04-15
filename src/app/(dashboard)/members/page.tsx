@@ -168,8 +168,9 @@ export default function OrgMembersPage() {
                           disabled={removeMember.isPending}
                           className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                           title="Remove member"
+                          aria-label={`Remove ${member.displayName || member.email}`}
                         >
-                          <Trash2 className="size-3.5" />
+                          <Trash2 aria-hidden="true" className="size-3.5" />
                         </button>
                       )}
                     </div>
@@ -194,7 +195,7 @@ export default function OrgMembersPage() {
                     className="flex items-center justify-between rounded-md bg-muted px-3 py-2"
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <Mail className="size-3.5 shrink-0 text-muted-foreground" />
+                      <Mail aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
                       <span className="truncate text-sm text-foreground">{inv.invitedEmail}</span>
                     </div>
                     {isOwner && (
@@ -203,8 +204,9 @@ export default function OrgMembersPage() {
                         disabled={revokeInvitation.isPending}
                         className="ml-2 shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                         title="Revoke invitation"
+                        aria-label={`Revoke invitation for ${inv.invitedEmail}`}
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 aria-hidden="true" className="size-3.5" />
                       </button>
                     )}
                   </div>

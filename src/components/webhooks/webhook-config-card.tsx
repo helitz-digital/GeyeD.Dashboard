@@ -180,6 +180,7 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
                 size="icon"
                 onClick={() => setShowSecret(!showSecret)}
                 title={showSecret ? "Hide secret" : "Reveal secret"}
+                aria-label={showSecret ? "Hide signing secret" : "Reveal signing secret"}
               >
                 {showSecret ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </Button>
@@ -188,6 +189,7 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
                 size="icon"
                 onClick={copySecret}
                 title="Copy secret"
+                aria-label="Copy signing secret"
               >
                 <Copy className="size-4" />
               </Button>
@@ -197,6 +199,7 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
                 onClick={handleRegenerate}
                 disabled={regenerateSecret.isPending}
                 title="Regenerate secret"
+                aria-label="Regenerate signing secret"
               >
                 <RefreshCw className={`size-4 ${regenerateSecret.isPending ? "animate-spin" : ""}`} />
               </Button>
