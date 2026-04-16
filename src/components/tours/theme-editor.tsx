@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Check } from "lucide-react";
-import { THEME_PRESETS, TRANSITION_PRESETS, parseThemeConfig } from "@/lib/theme";
+import { Loader2, Check, RotateCcw } from "lucide-react";
+import { THEME_PRESETS, TRANSITION_PRESETS, TRANSITION_ENTER_DEFS, parseThemeConfig, resolveFullTheme } from "@/lib/theme";
+import type { ResolvedTheme } from "@/lib/theme";
 import type { ThemeConfig, TransitionPreset } from "@/lib/api/types";
 
 interface ThemeEditorProps {
@@ -21,6 +22,7 @@ export function ThemeEditor({ currentThemeConfig, onSave, isSaving }: ThemeEdito
   const [backgroundColor, setBackgroundColor] = useState(parsed.backgroundColor || '#ffffff');
   const [textColor, setTextColor] = useState(parsed.textColor || '#1a1a1a');
   const [transitionPreset, setTransitionPreset] = useState<TransitionPreset>(parsed.transitionPreset || 'smooth');
+  const [animKey, setAnimKey] = useState(0);
 
   // Sync local state when the persisted config changes (e.g. after query refetch)
   const prevConfig = useRef(currentThemeConfig);
@@ -33,12 +35,17 @@ export function ThemeEditor({ currentThemeConfig, onSave, isSaving }: ThemeEdito
       setBackgroundColor(next.backgroundColor || '#ffffff');
       setTextColor(next.textColor || '#1a1a1a');
       setTransitionPreset(next.transitionPreset || 'smooth');
+      setAnimKey((k) => k + 1);
     }
   }, [currentThemeConfig]);
 
-  const activeColors = preset === 'custom'
-    ? { bg: backgroundColor, text: textColor, primary: primaryColor }
-    : THEME_PRESETS.find(p => p.id === preset)?.colors || THEME_PRESETS[0].colors;
+  const resolvedTheme: ResolvedTheme = preset === 'custom'
+    ? resolveFullTheme({ preset: 'custom', primaryColor, backgroundColor, textColor })
+    : resolveFullTheme({ preset });
+
+  const replayAnimation = useCallback(() => {
+    setAnimKey((k) => k + 1);
+  }, []);
 
   const handleSave = async () => {
     const config: ThemeConfig = {
@@ -192,7 +199,10 @@ export function ThemeEditor({ currentThemeConfig, onSave, isSaving }: ThemeEdito
             role="radio"
             aria-checked={transitionPreset === t.id}
             aria-label={`${t.name} transition: ${t.description}`}
-            onClick={() => setTransitionPreset(t.id)}
+            onClick={() => {
+              setTransitionPreset(t.id);
+              setAnimKey((k) => k + 1);
+            }}
             className={`relative rounded-lg border-2 p-3 text-left transition-colors ${
               transitionPreset === t.id
                 ? 'border-primary bg-primary/5'
@@ -212,28 +222,52 @@ export function ThemeEditor({ currentThemeConfig, onSave, isSaving }: ThemeEdito
 
       {/* Live preview */}
       <div className="space-y-2">
-        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Preview
-        </Label>
+        <div className="flex items-center gap-2">
+          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Preview
+          </Label>
+          {transitionPreset !== 'none' && (
+            <button
+              type="button"
+              onClick={replayAnimation}
+              aria-label="Replay transition animation"
+              className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <RotateCcw className="size-3" />
+              Replay
+            </button>
+          )}
+        </div>
         <div className="flex items-center justify-center rounded-lg border border-border bg-muted/50 p-8">
+          {transitionPreset !== 'none' && (
+            <style>{`
+              @keyframes geyed-preview-enter {
+                ${TRANSITION_ENTER_DEFS[transitionPreset].keyframes}
+              }
+            `}</style>
+          )}
           <div
+            key={animKey}
             className="rounded-lg shadow-lg"
             style={{
-              backgroundColor: activeColors.bg,
+              backgroundColor: resolvedTheme.bgColor,
               padding: '16px 20px',
               maxWidth: '320px',
               minWidth: '240px',
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              ...(transitionPreset !== 'none' ? {
+                animation: `geyed-preview-enter ${TRANSITION_ENTER_DEFS[transitionPreset].duration}ms ${TRANSITION_ENTER_DEFS[transitionPreset].easing} forwards`,
+              } : {}),
             }}
           >
-            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6, color: activeColors.text }}>
+            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6, color: resolvedTheme.titleColor }}>
               Welcome to our app
             </div>
-            <div style={{ color: activeColors.text, opacity: 0.7, fontSize: 14, marginBottom: 14 }}>
+            <div style={{ color: resolvedTheme.contentColor, fontSize: 14, marginBottom: 14 }}>
               This is a preview of your tooltip theme. The colors shown here will be used for all tour steps.
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: activeColors.text, opacity: 0.5 }}>1 of 3</span>
+              <span style={{ fontSize: 12, color: resolvedTheme.progressColor }}>1 of 3</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   type="button"
@@ -244,9 +278,8 @@ export function ThemeEditor({ currentThemeConfig, onSave, isSaving }: ThemeEdito
                     fontSize: 13,
                     fontWeight: 500,
                     border: 'none',
-                    backgroundColor: activeColors.bg === '#ffffff' ? '#f1f5f9' : 'rgba(255,255,255,0.1)',
-                    color: activeColors.text,
-                    opacity: 0.7,
+                    backgroundColor: resolvedTheme.secondaryBtnBg,
+                    color: resolvedTheme.secondaryBtnText,
                   }}
                 >
                   Back
@@ -260,7 +293,7 @@ export function ThemeEditor({ currentThemeConfig, onSave, isSaving }: ThemeEdito
                     fontSize: 13,
                     fontWeight: 500,
                     border: 'none',
-                    backgroundColor: activeColors.primary,
+                    backgroundColor: resolvedTheme.primaryBtnBg,
                     color: '#ffffff',
                   }}
                 >
