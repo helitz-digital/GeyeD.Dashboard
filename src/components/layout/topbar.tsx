@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/providers/auth-provider";
 import { useOnboarding } from "@/providers/onboarding-provider";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 import { useState, useRef, useEffect } from "react";
 
@@ -121,6 +122,7 @@ export function Topbar() {
 
       {/* Right: Actions + User */}
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <NotificationBell />
 
         <div ref={helpRef} className="relative">
