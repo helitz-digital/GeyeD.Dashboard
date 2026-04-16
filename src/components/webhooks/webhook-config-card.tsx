@@ -27,14 +27,12 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
   const [url, setUrl] = useState("");
   const [isEnabled, setIsEnabled] = useState(true);
   const [showSecret, setShowSecret] = useState(false);
-  const [revealedSecret, setRevealedSecret] = useState<string | null>(null);
 
   // Sync form state when config loads
   useEffect(() => {
     if (config) {
       setUrl(config.url);
       setIsEnabled(config.isEnabled);
-      setRevealedSecret(null);
       setShowSecret(false);
     }
   }, [config]);
@@ -42,11 +40,9 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
   const handleSave = async () => {
     try {
       const result = await upsert.mutateAsync({ url, isEnabled });
-      // On first create, show the signing secret
       if (!config) {
-        setRevealedSecret(result.signingSecret);
         setShowSecret(true);
-        toast.success("Webhook created. Copy your signing secret now — it won't be shown in full again.");
+        toast.success("Webhook created. Copy your signing secret now.");
       } else {
         toast.success("Webhook updated");
       }
@@ -60,7 +56,6 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
       await deleteWebhook.mutateAsync();
       setUrl("");
       setIsEnabled(true);
-      setRevealedSecret(null);
       toast.success("Webhook deleted");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete webhook");
@@ -70,9 +65,8 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
   const handleRegenerate = async () => {
     try {
       const result = await regenerateSecret.mutateAsync();
-      setRevealedSecret(result.signingSecret);
       setShowSecret(true);
-      toast.success("Secret regenerated. Copy it now — it won't be shown in full again.");
+      toast.success("Secret regenerated. Copy your new signing secret now.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to regenerate secret");
     }
@@ -92,23 +86,16 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
   };
 
   const copySecret = async () => {
-    const secret = revealedSecret ?? config?.signingSecret;
-    if (!secret) return;
-    await navigator.clipboard.writeText(secret);
+    if (!config?.signingSecret) return;
+    await navigator.clipboard.writeText(config.signingSecret);
     toast.success("Signing secret copied");
   };
 
-  const maskedSecret = config?.signingSecret
-    ? config.signingSecret.slice(0, 8) + "••••••••••••••••"
-    : null;
-
-  const displaySecret = revealedSecret
+  const displaySecret = config?.signingSecret
     ? showSecret
-      ? revealedSecret
-      : revealedSecret.slice(0, 8) + "••••••••••••••••"
-    : showSecret && config?.signingSecret
       ? config.signingSecret
-      : maskedSecret;
+      : config.signingSecret.slice(0, 8) + "••••••••••••••••"
+    : null;
 
   if (isLoading) {
     return (
@@ -163,14 +150,9 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
         </div>
 
         {/* Signing Secret */}
-        {(config || revealedSecret) && (
+        {config && (
           <div className="space-y-2">
             <Label>Signing Secret</Label>
-            {revealedSecret && (
-              <p className="text-xs text-destructive">
-                Copy this secret now. It will not be shown in full again.
-              </p>
-            )}
             <div className="flex items-center gap-2">
               <code className="flex-1 rounded-lg border border-input bg-muted/50 px-3 py-1.5 font-mono text-xs break-all">
                 {displaySecret}

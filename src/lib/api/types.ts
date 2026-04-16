@@ -67,11 +67,10 @@ export interface AppListRm {
   id: number;
   workspaceId: number;
   name: string;
-  apiKeyPrefix: string;
+  apiKey: string;
   createdAtUtc: string;
 }
 export interface AppRm extends AppListRm {
-  apiKey?: string;
   environments: EnvironmentRm[];
   themeConfig: string | null;
 }

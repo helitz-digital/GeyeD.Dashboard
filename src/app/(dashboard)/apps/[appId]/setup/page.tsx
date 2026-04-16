@@ -56,7 +56,7 @@ export default function SetupPage() {
   const { data: app } = useApp(wsId ?? 0, appId);
   const { currentStage, advanceStage, tourId, startOnboardingTour } = useOnboarding();
 
-  const apiKey = app?.apiKey ?? app?.apiKeyPrefix ?? "";
+  const apiKey = app?.apiKey ?? "";
 
   // Trigger the SDK install overlay tour during onboarding
   useEffect(() => {
