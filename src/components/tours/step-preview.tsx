@@ -51,7 +51,7 @@ export function StepPreview({ step, stepIndex, totalSteps, themeColors }: StepPr
       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
         Tooltip Preview
       </span>
-      <div className="flex items-center justify-center rounded-lg border border-border bg-muted/50 p-8">
+      <div className="flex items-center justify-center rounded-lg border border-border bg-muted/50 dark:bg-[oklch(0.35_0_0)] p-8">
         <div
           className="relative rounded-lg shadow-lg"
           style={{
