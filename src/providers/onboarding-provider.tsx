@@ -15,6 +15,7 @@ import {
   useCreateSampleTour,
   useSkipOnboarding,
   useResetOnboarding,
+  useOrganisations,
 } from "@/lib/api/hooks";
 import { Celebration } from "@/components/onboarding/celebration";
 import {
@@ -67,6 +68,7 @@ export { ONBOARDING_TOUR_IDS };
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const { data: status } = useOnboardingStatus();
+  const { data: orgs } = useOrganisations();
   const completeStage = useCompleteOnboardingStage();
   const createSampleTour = useCreateSampleTour();
   const skip = useSkipOnboarding();
@@ -77,8 +79,17 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const prevStageRef = useRef<OnboardingStage | null>(null);
 
   const currentStage = status?.stage ?? null;
+  const hasActiveSubscription = orgs?.items?.some(
+    (org) =>
+      org.subscriptionStatus === "Trialing" ||
+      org.subscriptionStatus === "Active" ||
+      org.subscriptionStatus === "PastDue",
+  ) ?? false;
   const isOnboarding =
-    !!currentStage && currentStage !== "complete" && !showCelebration;
+    !!currentStage &&
+    currentStage !== "complete" &&
+    !showCelebration &&
+    hasActiveSubscription;
 
   // Keep a ref for event handlers
   const completeStageRef = useRef(completeStage);
