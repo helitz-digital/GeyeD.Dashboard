@@ -124,23 +124,6 @@ export function parseThemeConfig(json: string | null): ThemeConfig {
   }
 }
 
-/** Resolve a ThemeConfig (or raw JSON string) to concrete CSS colors. */
-export function resolveThemeColors(configOrJson: ThemeConfig | string | null): ThemeColors {
-  const config = typeof configOrJson === "string" || configOrJson === null
-    ? parseThemeConfig(configOrJson)
-    : configOrJson;
-
-  if (config.preset === "custom") {
-    return {
-      bg: config.backgroundColor || "#ffffff",
-      text: config.textColor || "#1a1a1a",
-      primary: config.primaryColor || "#2563eb",
-    };
-  }
-
-  return THEME_PRESETS.find((p) => p.id === config.preset)?.colors ?? THEME_PRESETS[0].colors;
-}
-
 /** Resolve a ThemeConfig to the full SDK-aligned color set. */
 export function resolveFullTheme(configOrJson: ThemeConfig | string | null): ResolvedTheme {
   const config = typeof configOrJson === "string" || configOrJson === null

@@ -3,13 +3,13 @@
 import DOMPurify from "dompurify";
 import { useMemo } from "react";
 import type { StepRequest } from "@/lib/api/types";
-import type { ThemeColors } from "@/lib/theme";
+import type { ResolvedTheme } from "@/lib/theme";
 
 interface StepPreviewProps {
   step: StepRequest;
   stepIndex: number;
   totalSteps: number;
-  themeColors: ThemeColors;
+  resolvedTheme: ResolvedTheme;
 }
 
 function ArrowIndicator({ placement, bgColor }: { placement: string; bgColor: string }) {
@@ -37,10 +37,7 @@ function ArrowIndicator({ placement, bgColor }: { placement: string; bgColor: st
   );
 }
 
-export function StepPreview({ step, stepIndex, totalSteps, themeColors }: StepPreviewProps) {
-  const { bg, text, primary } = themeColors;
-  const backBg = bg === "#ffffff" ? "#f1f5f9" : "rgba(255,255,255,0.1)";
-
+export function StepPreview({ step, stepIndex, totalSteps, resolvedTheme }: StepPreviewProps) {
   const sanitizedContent = useMemo(
     () => (typeof window !== "undefined" && step.content ? DOMPurify.sanitize(step.content) : ""),
     [step.content],
@@ -55,24 +52,24 @@ export function StepPreview({ step, stepIndex, totalSteps, themeColors }: StepPr
         <div
           className="relative rounded-lg shadow-lg"
           style={{
-            backgroundColor: bg,
+            backgroundColor: resolvedTheme.bgColor,
             padding: "16px 20px",
             maxWidth: "320px",
             minWidth: "240px",
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           }}
         >
-          <ArrowIndicator placement={step.placement} bgColor={bg} />
+          <ArrowIndicator placement={step.placement} bgColor={resolvedTheme.bgColor} />
 
           {/* Title */}
-          <div style={{ fontWeight: 600, fontSize: 14, color: text }}>
+          <div style={{ fontWeight: 600, fontSize: 14, color: resolvedTheme.titleColor }}>
             {step.title || "Untitled Step"}
           </div>
 
           {/* Content */}
           {sanitizedContent && (
             <div
-              style={{ color: text, opacity: 0.75, fontSize: 13, marginTop: 6 }}
+              style={{ color: resolvedTheme.contentColor, fontSize: 13, marginTop: 6 }}
               className="[&_p]:my-0.5 [&_ul]:my-0.5 [&_ul]:list-disc [&_ul]:pl-4 [&_a]:underline"
               dangerouslySetInnerHTML={{ __html: sanitizedContent }}
             />
@@ -80,7 +77,7 @@ export function StepPreview({ step, stepIndex, totalSteps, themeColors }: StepPr
 
           {/* Footer */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
-            <span style={{ fontSize: 11, color: text, opacity: 0.5 }}>
+            <span style={{ fontSize: 11, color: resolvedTheme.progressColor }}>
               {stepIndex + 1} of {totalSteps}
             </span>
             <div style={{ display: "flex", gap: 6 }}>
@@ -94,9 +91,8 @@ export function StepPreview({ step, stepIndex, totalSteps, themeColors }: StepPr
                     fontSize: 12,
                     fontWeight: 500,
                     border: "none",
-                    backgroundColor: backBg,
-                    color: text,
-                    opacity: 0.7,
+                    backgroundColor: resolvedTheme.secondaryBtnBg,
+                    color: resolvedTheme.secondaryBtnText,
                   }}
                 >
                   Back
@@ -111,7 +107,7 @@ export function StepPreview({ step, stepIndex, totalSteps, themeColors }: StepPr
                   fontSize: 12,
                   fontWeight: 500,
                   border: "none",
-                  backgroundColor: primary,
+                  backgroundColor: resolvedTheme.primaryBtnBg,
                   color: "#ffffff",
                 }}
               >

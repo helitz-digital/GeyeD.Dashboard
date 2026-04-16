@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { StepList } from "@/components/tours/step-list";
 import { RichTextEditor } from "@/components/tours/rich-text-editor";
 import { StepPreview } from "@/components/tours/step-preview";
-import { resolveThemeColors } from "@/lib/theme";
+import { resolveFullTheme } from "@/lib/theme";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ArrowLeft, Plus, Loader2, Trash2, Copy, Check, PartyPopper, Code2 } from "lucide-react";
@@ -61,8 +61,8 @@ export default function TourDetailPage() {
   const unpublish = useUnpublish(appId, tourId);
   const { advanceStage, currentStage, startOnboardingTour } = useOnboarding();
 
-  const themeColors = useMemo(
-    () => resolveThemeColors(app?.themeConfig ?? null),
+  const resolvedTheme = useMemo(
+    () => resolveFullTheme(app?.themeConfig ?? null),
     [app?.themeConfig]
   );
 
@@ -517,7 +517,7 @@ export default function TourDetailPage() {
                     step={activeStep}
                     stepIndex={activeStepIndex}
                     totalSteps={steps.length}
-                    themeColors={themeColors}
+                    resolvedTheme={resolvedTheme}
                   />
                 </div>
               </div>
