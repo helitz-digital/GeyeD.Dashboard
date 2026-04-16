@@ -82,6 +82,39 @@ export const TRANSITION_PRESETS: { id: TransitionPreset; name: string; descripti
   { id: "none", name: "None", description: "No animation" },
 ];
 
+// Source of truth: SDK/src/rendering/transitions.ts — see #27 for shared package plan
+export const TRANSITION_ENTER_DEFS: Record<TransitionPreset, {
+  keyframes: string;
+  duration: number;
+  easing: string;
+}> = {
+  smooth: {
+    keyframes: 'from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); }',
+    duration: 600,
+    easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+  },
+  snappy: {
+    keyframes: 'from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); }',
+    duration: 250,
+    easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  },
+  fade: {
+    keyframes: 'from { opacity: 0; } to { opacity: 1; }',
+    duration: 500,
+    easing: 'ease',
+  },
+  slide: {
+    keyframes: 'from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); }',
+    duration: 450,
+    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+  },
+  none: {
+    keyframes: 'from { opacity: 1; } to { opacity: 1; }',
+    duration: 0,
+    easing: 'linear',
+  },
+};
+
 export function parseThemeConfig(json: string | null): ThemeConfig {
   if (!json) return { preset: "light" };
   try {
