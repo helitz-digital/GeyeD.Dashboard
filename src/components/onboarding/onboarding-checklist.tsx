@@ -46,7 +46,7 @@ const STEPS: StepDef[] = [
     description: "A quick walkthrough of the platform to get you oriented.",
     icon: Compass,
     actionLabel: "Start Tour",
-    getHref: () => null, // Tour starts automatically on the dashboard
+    getHref: () => `/dashboard`,
   },
   {
     stages: ["orientationComplete"],
