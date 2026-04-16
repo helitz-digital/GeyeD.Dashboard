@@ -18,12 +18,14 @@ import {
   useCreatePortalSession,
 } from "@/lib/api/hooks";
 import { useActiveWorkspace } from "@/providers/active-workspace-provider";
+import { useOnboarding } from "@/providers/onboarding-provider";
 import type { CreateCheckoutRequest } from "@/lib/api/types";
 
 export default function OrgBillingPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const { orgId } = useActiveWorkspace();
+  const { requestHelpTrayOpen } = useOnboarding();
 
   const { data: billing, isLoading: billingLoading } = useBillingInfo(orgId ?? 0);
   const confirmCheckout = useConfirmCheckout(orgId ?? 0);
@@ -46,6 +48,7 @@ export default function OrgBillingPage() {
     confirmCheckout.mutate(sessionId, {
       onSuccess: () => {
         toast.success("Payment confirmed! Your plan has been upgraded.");
+        requestHelpTrayOpen();
       },
       onError: (error: Error) => {
         toast.error(
