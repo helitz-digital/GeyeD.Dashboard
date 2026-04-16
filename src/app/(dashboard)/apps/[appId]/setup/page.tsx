@@ -83,7 +83,7 @@ export default function SetupPage() {
   };
 
   const cdnSnippet = `<!-- Add before </body> -->
-<script src="https://cdn.geyed.io/sdk.js"></script>
+<script src="https://unpkg.com/@geyed/sdk/dist/index.iife.js"></script>
 <script>
   Geyed.init({
     apiKey: '${apiKey}',
