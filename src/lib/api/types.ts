@@ -322,9 +322,17 @@ export interface UpsertWebhookRequest {
   isEnabled: boolean;
 }
 
+export interface TestWebhookRequest {
+  eventType?: string;
+}
+
 export interface TestWebhookResponse {
   success: boolean;
-  message: string;
+  eventType: string;
+  httpStatusCode: number | null;
+  responseBody: string | null;
+  durationMs: number;
+  errorMessage?: string | null;
 }
 
 // Billing

@@ -8,14 +8,29 @@ import {
   useRegenerateWebhookSecret,
   useTestWebhook,
 } from "@/lib/api/hooks";
+import type { TestWebhookResponse } from "@/lib/api/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Copy, RefreshCw, Trash2, Send, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Eye, EyeOff, Copy, RefreshCw, Trash2, Send, Loader2, X, Clock, Globe } from "lucide-react";
 import { toast } from "sonner";
+
+const EVENT_TYPES = [
+  { value: "test.ping", label: "test.ping" },
+  { value: "tour_started", label: "tour_started" },
+  { value: "tour_completed", label: "tour_completed" },
+  { value: "tour_dismissed", label: "tour_dismissed" },
+] as const;
 
 export function WebhookConfigCard({ appId }: { appId: number }) {
   const { data: config, isLoading } = useWebhookConfig(appId);
@@ -27,6 +42,9 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
   const [url, setUrl] = useState("");
   const [isEnabled, setIsEnabled] = useState(true);
   const [showSecret, setShowSecret] = useState(false);
+  const [eventType, setEventType] = useState("test.ping");
+  const [testResult, setTestResult] = useState<TestWebhookResponse | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   // Sync form state when config loads
   useEffect(() => {
@@ -56,6 +74,8 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
       await deleteWebhook.mutateAsync();
       setUrl("");
       setIsEnabled(true);
+      setTestResult(null);
+      setTestError(null);
       toast.success("Webhook deleted");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete webhook");
@@ -73,15 +93,13 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
   };
 
   const handleTest = async () => {
+    setTestResult(null);
+    setTestError(null);
     try {
-      const result = await testWebhook.mutateAsync();
-      if (result.success) {
-        toast.success(result.message);
-      } else {
-        toast.error(result.message);
-      }
+      const result = await testWebhook.mutateAsync({ eventType });
+      setTestResult(result);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send test");
+      setTestError(err instanceof Error ? err.message : "Failed to send test");
     }
   };
 
@@ -208,17 +226,34 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
           </Button>
           {config && (
             <>
+              <Select value={eventType} onValueChange={(v) => v && setEventType(v)}>
+                <SelectTrigger disabled={testWebhook.isPending}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EVENT_TYPES.map((et) => (
+                    <SelectItem key={et.value} value={et.value}>
+                      {et.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 variant="outline"
                 onClick={handleTest}
                 disabled={testWebhook.isPending}
               >
                 {testWebhook.isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Testing...
+                  </>
                 ) : (
-                  <Send className="size-4" />
+                  <>
+                    <Send className="size-4" />
+                    Test
+                  </>
                 )}
-                Test
               </Button>
               <Button
                 variant="destructive"
@@ -235,6 +270,91 @@ export function WebhookConfigCard({ appId }: { appId: number }) {
             </>
           )}
         </div>
+
+        {/* Test Result */}
+        {testWebhook.isPending && (
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin shrink-0" />
+            Sending test event to your endpoint... This may take up to 10 seconds.
+          </div>
+        )}
+
+        {testResult && !testWebhook.isPending && (
+          <div
+            className={`rounded-lg border px-4 py-3 space-y-2 ${
+              testResult.success
+                ? "border-green-500/30 bg-green-500/5"
+                : "border-red-500/30 bg-red-500/5"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant={testResult.success ? "default" : "destructive"}>
+                  {testResult.success ? "Success" : "Failed"}
+                </Badge>
+                <code className="text-xs text-muted-foreground font-mono">
+                  {testResult.eventType}
+                </code>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                onClick={() => setTestResult(null)}
+                aria-label="Dismiss test result"
+              >
+                <X className="size-3" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              {testResult.httpStatusCode != null && (
+                <span className="flex items-center gap-1">
+                  <Globe className="size-3" />
+                  HTTP {testResult.httpStatusCode}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Clock className="size-3" />
+                {testResult.durationMs}ms
+              </span>
+            </div>
+            {testResult.errorMessage && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {testResult.errorMessage}
+              </p>
+            )}
+            {testResult.responseBody && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Endpoint response
+                </p>
+                <pre className="rounded-md border border-input bg-muted/50 p-2 font-mono text-xs whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
+                  {testResult.responseBody}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+
+        {testError && !testWebhook.isPending && (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <Badge variant="destructive">Error</Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                onClick={() => setTestError(null)}
+                aria-label="Dismiss error"
+              >
+                <X className="size-3" />
+              </Button>
+            </div>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+              {testError}
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
