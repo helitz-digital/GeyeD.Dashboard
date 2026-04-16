@@ -410,11 +410,16 @@ export function useRegenerateWebhookSecret(appId: number) {
 }
 
 export function useTestWebhook(appId: number) {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: () =>
+    mutationFn: (data?: T.TestWebhookRequest) =>
       apiClient<T.TestWebhookResponse>(`${API}/apps/${appId}/webhook/test`, {
         method: "POST",
+        body: JSON.stringify(data ?? {}),
       }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["webhookDeliveries", appId] });
+    },
   });
 }
 
