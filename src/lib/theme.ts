@@ -6,6 +6,67 @@ export interface ThemeColors {
   primary: string;
 }
 
+// Source of truth: SDK/src/rendering/styles.ts — see #27 for shared package plan
+export interface ResolvedTheme {
+  bgColor: string;
+  textColor: string;
+  titleColor: string;
+  contentColor: string;
+  primaryBtnBg: string;
+  primaryBtnHoverBg: string;
+  secondaryBtnBg: string;
+  secondaryBtnText: string;
+  secondaryBtnHoverBg: string;
+  closeBtnColor: string;
+  closeBtnHoverBg: string;
+  progressColor: string;
+}
+
+const RESOLVED_THEMES: Record<string, ResolvedTheme> = {
+  light: {
+    bgColor: '#ffffff',
+    textColor: '#1a1a1a',
+    titleColor: '#111',
+    contentColor: '#555',
+    primaryBtnBg: '#2563eb',
+    primaryBtnHoverBg: '#1d4ed8',
+    secondaryBtnBg: '#f1f5f9',
+    secondaryBtnText: '#475569',
+    secondaryBtnHoverBg: '#e2e8f0',
+    closeBtnColor: '#999',
+    closeBtnHoverBg: '#f1f5f9',
+    progressColor: '#999',
+  },
+  dark: {
+    bgColor: '#1e1e2e',
+    textColor: '#e0e0e0',
+    titleColor: '#f0f0f0',
+    contentColor: '#b0b0b0',
+    primaryBtnBg: '#6366f1',
+    primaryBtnHoverBg: '#4f46e5',
+    secondaryBtnBg: '#2d2d3f',
+    secondaryBtnText: '#b0b0b0',
+    secondaryBtnHoverBg: '#3d3d4f',
+    closeBtnColor: '#888',
+    closeBtnHoverBg: '#2d2d3f',
+    progressColor: '#888',
+  },
+  blue: {
+    bgColor: '#1e3a5f',
+    textColor: '#ffffff',
+    titleColor: '#ffffff',
+    contentColor: '#cbd5e1',
+    primaryBtnBg: '#38bdf8',
+    primaryBtnHoverBg: '#0ea5e9',
+    secondaryBtnBg: '#2a4a6f',
+    secondaryBtnText: '#cbd5e1',
+    secondaryBtnHoverBg: '#3a5a7f',
+    closeBtnColor: '#94a3b8',
+    closeBtnHoverBg: '#2a4a6f',
+    progressColor: '#94a3b8',
+  },
+};
+
 export const THEME_PRESETS: { id: ThemeConfig["preset"]; name: string; colors: ThemeColors }[] = [
   { id: "light", name: "Light", colors: { bg: "#ffffff", text: "#1a1a1a", primary: "#2563eb" } },
   { id: "dark", name: "Dark", colors: { bg: "#1e1e2e", text: "#e0e0e0", primary: "#6366f1" } },
@@ -45,4 +106,37 @@ export function resolveThemeColors(configOrJson: ThemeConfig | string | null): T
   }
 
   return THEME_PRESETS.find((p) => p.id === config.preset)?.colors ?? THEME_PRESETS[0].colors;
+}
+
+/** Resolve a ThemeConfig to the full SDK-aligned color set. */
+export function resolveFullTheme(configOrJson: ThemeConfig | string | null): ResolvedTheme {
+  const config = typeof configOrJson === "string" || configOrJson === null
+    ? parseThemeConfig(configOrJson)
+    : configOrJson;
+
+  if (config.preset !== "custom" && RESOLVED_THEMES[config.preset]) {
+    return RESOLVED_THEMES[config.preset];
+  }
+
+  if (config.preset === "custom") {
+    const primary = config.primaryColor || "#2563eb";
+    const bg = config.backgroundColor || "#ffffff";
+    const text = config.textColor || "#1a1a1a";
+    return {
+      bgColor: bg,
+      textColor: text,
+      titleColor: text,
+      contentColor: text,
+      primaryBtnBg: primary,
+      primaryBtnHoverBg: primary,
+      secondaryBtnBg: "#f1f5f9",
+      secondaryBtnText: "#475569",
+      secondaryBtnHoverBg: "#e2e8f0",
+      closeBtnColor: "#999",
+      closeBtnHoverBg: "#f1f5f9",
+      progressColor: "#999",
+    };
+  }
+
+  return RESOLVED_THEMES.light;
 }
