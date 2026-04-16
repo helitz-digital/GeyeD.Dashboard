@@ -88,9 +88,17 @@ function Breadcrumbs() {
 
 export function Topbar() {
   const { user, logout } = useAuth();
-  const { restartOnboarding, isOnboarding } = useOnboarding();
+  const { restartOnboarding, isOnboarding, helpTrayRequested, consumeHelpTrayRequest } = useOnboarding();
   const [helpOpen, setHelpOpen] = useState(false);
   const helpRef = useRef<HTMLDivElement>(null);
+
+  // Auto-open the help tray when requested (e.g. after payment success)
+  useEffect(() => {
+    if (helpTrayRequested) {
+      setHelpOpen(true);
+      consumeHelpTrayRequest();
+    }
+  }, [helpTrayRequested, consumeHelpTrayRequest]);
 
   // Close panel on click outside
   useEffect(() => {

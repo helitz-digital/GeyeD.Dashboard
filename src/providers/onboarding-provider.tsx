@@ -43,6 +43,12 @@ interface OnboardingContextValue {
   advanceStage: (stage: OnboardingStage, meta?: { appId?: number }) => Promise<void>;
   /** Start a specific SDK overlay tour by ID. Pages call this on mount. */
   startOnboardingTour: (tourId: number) => void;
+  /** Signal the topbar to open the help/onboarding tray. */
+  requestHelpTrayOpen: () => void;
+  /** True when a page has requested the tray to open. Resets after consumption. */
+  helpTrayRequested: boolean;
+  /** Mark the tray-open request as consumed. */
+  consumeHelpTrayRequest: () => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
@@ -76,6 +82,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
+  const [helpTrayRequested, setHelpTrayRequested] = useState(false);
   const prevStageRef = useRef<OnboardingStage | null>(null);
 
   const currentStage = status?.stage ?? null;
@@ -207,6 +214,9 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     restartOnboarding: handleRestart,
     advanceStage,
     startOnboardingTour,
+    requestHelpTrayOpen: useCallback(() => setHelpTrayRequested(true), []),
+    helpTrayRequested,
+    consumeHelpTrayRequest: useCallback(() => setHelpTrayRequested(false), []),
   };
 
   return (
