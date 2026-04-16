@@ -129,12 +129,12 @@ export default function AppsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
-                  <Badge data-onboarding="api-key" variant="secondary" className="bg-muted text-muted-foreground font-mono text-xs">{app.apiKey.substring(0, 16)}...</Badge>
+                  <Badge data-onboarding="api-key" variant="secondary" className="bg-muted text-muted-foreground font-mono text-xs">{app.apiKeyPrefix}...</Badge>
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      navigator.clipboard.writeText(app.apiKey);
+                      navigator.clipboard.writeText(app.apiKeyPrefix);
                       toast.success("API key copied to clipboard");
                     }}
                     className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
