@@ -14,7 +14,7 @@ import { StepPreview } from "@/components/tours/step-preview";
 import { resolveThemeColors } from "@/lib/theme";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { ArrowLeft, Plus, Loader2, Trash2, Copy, Check } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Trash2, Copy, Check, PartyPopper, Code2 } from "lucide-react";
 import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -73,6 +73,7 @@ export default function TourDetailPage() {
   const [triggerSelector, setTriggerSelector] = useState("");
   const [isRepeatable, setIsRepeatable] = useState(false);
   const [tourTransitionPreset, setTourTransitionPreset] = useState<string | null>(null);
+  const [showPublishCelebration, setShowPublishCelebration] = useState(false);
 
   // Sync local state when draft data loads or changes
   const loadedDraftId = useRef<number | null>(null);
@@ -140,10 +141,10 @@ export default function TourDetailPage() {
     await publish.mutateAsync(buildRequest());
     toast.success("Tour published");
 
-    // Advance onboarding one step at a time and navigate to the next page
+    // Advance onboarding one step at a time
     if (currentStage === "appCreated") {
       await advanceStage("tourCreated");
-      router.push(`/apps/${appId}/setup`);
+      setShowPublishCelebration(true);
     } else if (currentStage === "sdkInstalled") {
       await advanceStage("complete");
     }
@@ -536,6 +537,35 @@ export default function TourDetailPage() {
           </div>
         </main>
       </div>
+
+      {/* Publish celebration modal (onboarding) */}
+      {showPublishCelebration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="mx-auto max-w-sm rounded-xl border border-border bg-card p-8 text-center shadow-2xl">
+            <PartyPopper className="mx-auto size-12 text-primary" />
+            <h2 className="mt-4 text-xl font-bold text-foreground">
+              Tour published!
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Great work! Now let&apos;s install the SDK so your users can see it.
+            </p>
+            <Button
+              className="mt-6 w-full gap-2"
+              render={<Link href={`/apps/${appId}/setup`} />}
+              onClick={() => setShowPublishCelebration(false)}
+            >
+              <Code2 className="size-4" />
+              Go to Setup
+            </Button>
+            <button
+              onClick={() => setShowPublishCelebration(false)}
+              className="mt-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              I&apos;ll do this later
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
