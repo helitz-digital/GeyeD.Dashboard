@@ -353,8 +353,7 @@ export interface PlanInfoRm {
   maxApps: number;
   maxMembers: number;
   maxTours: number;
-  prices: Record<string, PlanPricesRm>;
-  availableCurrencies: string[];
+  prices: PlanPricesRm;
 }
 
 export interface PlanPricesRm {

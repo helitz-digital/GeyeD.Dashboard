@@ -51,8 +51,7 @@ export function PricingTable({
     <div className="space-y-6">
       {/* Lifetime deal banner */}
       {lifetimePlan && (() => {
-        const planPrices = lifetimePlan.prices["usd"];
-        const displayPrice = formatPrice(planPrices?.oneTime);
+        const displayPrice = formatPrice(lifetimePlan.prices.oneTime);
         const isCurrentLifetime = isCurrentPlan("Lifetime");
 
         return (
@@ -145,11 +144,10 @@ export function PricingTable({
           const isEnterprise = plan.name === "Enterprise";
           const isPro = plan.name === "Pro";
 
-          const planPrices = plan.prices["usd"];
           const price =
             billingCycle === "monthly"
-              ? planPrices?.monthly
-              : planPrices?.annual;
+              ? plan.prices.monthly
+              : plan.prices.annual;
 
           const displayPrice = isEnterprise
             ? "Custom"
