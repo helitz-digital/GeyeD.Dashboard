@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, Sparkles } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,53 +13,14 @@ import {
 } from "@/components/ui/card";
 import type { PlanType, SubscriptionStatus, CreateCheckoutRequest, PlanInfoRm } from "@/lib/api/types";
 
-function formatPrice(amount: number | null | undefined, currency: string): string {
+function formatPrice(amount: number | null | undefined): string {
   if (amount == null) return "Custom";
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: currency.toUpperCase(),
+    currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount / 100);
-}
-
-function detectCurrency(availableCurrencies: string[]): string {
-  if (availableCurrencies.length === 0) return "usd";
-
-  if (typeof window !== "undefined") {
-    const stored = localStorage.getItem("preferred-currency");
-    if (stored && availableCurrencies.includes(stored)) return stored;
-  }
-
-  const locale = typeof navigator !== "undefined" ? navigator.language || "en-US" : "en-US";
-
-  const localeCurrencyMap: Record<string, string> = {
-    "en-US": "usd", "en-GB": "gbp", "en-AU": "aud", "en-CA": "cad",
-    "de": "eur", "fr": "eur", "es": "eur", "it": "eur", "nl": "eur", "pt": "eur",
-    "ja": "jpy", "zh": "cny", "ko": "krw", "pt-BR": "brl",
-  };
-
-  const detected = localeCurrencyMap[locale] || localeCurrencyMap[locale.split("-")[0]];
-  if (detected && availableCurrencies.includes(detected)) return detected;
-
-  return availableCurrencies.includes("usd") ? "usd" : availableCurrencies[0] || "usd";
-}
-
-function deriveAvailableCurrencies(plans: PlanInfoRm[]): string[] {
-  const sets = plans
-    .filter((p) => p.availableCurrencies.length > 0)
-    .map((p) => new Set(p.availableCurrencies));
-
-  if (sets.length === 0) return [];
-
-  const intersection = new Set(sets[0]);
-  for (let i = 1; i < sets.length; i++) {
-    for (const c of intersection) {
-      if (!sets[i].has(c)) intersection.delete(c);
-    }
-  }
-
-  return [...intersection].sort();
 }
 
 interface PricingTableProps {
@@ -77,16 +38,7 @@ export function PricingTable({
   onSelectPlan,
   isLoading,
 }: PricingTableProps) {
-  const availableCurrencies = deriveAvailableCurrencies(plans);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
-  const [currency, setCurrency] = useState<string>(() => detectCurrency(availableCurrencies));
-
-  const handleCurrencyChange = (newCurrency: string) => {
-    setCurrency(newCurrency);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("preferred-currency", newCurrency);
-    }
-  };
 
   const isCurrentPlan = (planName: string) =>
     currentPlan === planName && currentStatus !== "Canceled" && currentStatus !== "None";
@@ -99,8 +51,7 @@ export function PricingTable({
     <div className="space-y-6">
       {/* Lifetime deal banner */}
       {lifetimePlan && (() => {
-        const planPrices = lifetimePlan.prices[currency];
-        const displayPrice = formatPrice(planPrices?.oneTime, currency);
+        const displayPrice = formatPrice(lifetimePlan.prices.oneTime);
         const isCurrentLifetime = isCurrentPlan("Lifetime");
 
         return (
@@ -158,8 +109,8 @@ export function PricingTable({
         );
       })()}
 
-      {/* Billing cycle toggle + currency picker */}
-      <div className="flex items-center justify-center gap-4">
+      {/* Billing cycle toggle */}
+      <div className="flex items-center justify-center">
         <div className="inline-flex rounded-lg border border-border bg-muted p-1">
           <button
             type="button"
@@ -185,23 +136,6 @@ export function PricingTable({
             <span className="ml-1.5 text-xs font-semibold text-emerald-600">save 20%</span>
           </button>
         </div>
-
-        {availableCurrencies.length > 1 && (
-          <div className="relative">
-            <select
-              value={currency}
-              onChange={(e) => handleCurrencyChange(e.target.value)}
-              className="h-9 cursor-pointer appearance-none rounded-lg border border-border bg-muted py-2 pl-3 pr-8 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {availableCurrencies.map((c) => (
-                <option key={c} value={c}>
-                  {c.toUpperCase()}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          </div>
-        )}
       </div>
 
       {/* Plan cards -- always 3 columns (Starter, Pro, Enterprise) */}
@@ -210,15 +144,14 @@ export function PricingTable({
           const isEnterprise = plan.name === "Enterprise";
           const isPro = plan.name === "Pro";
 
-          const planPrices = plan.prices[currency];
           const price =
             billingCycle === "monthly"
-              ? planPrices?.monthly
-              : planPrices?.annual;
+              ? plan.prices.monthly
+              : plan.prices.annual;
 
           const displayPrice = isEnterprise
             ? "Custom"
-            : formatPrice(price, currency);
+            : formatPrice(price);
 
           return (
             <Card
